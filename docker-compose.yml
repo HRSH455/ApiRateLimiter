@@ -1,0 +1,5 @@
+# Prompt Copilot:
+# Docker Compose for: Redis 7, Spring Boot API on 8080, Angular on 4200 via nginx.
+# Spring Boot env vars: REDIS_HOST, REDIS_PORT.
+# Health check on Redis before starting Spring Boot.
+# Angular container built from Dockerfile with nginx serving dist/.
