@@ -1,5 +1,30 @@
-# Prompt Copilot:
-# Docker Compose for: Redis 7, Spring Boot API on 8080, Angular on 4200 via nginx.
-# Spring Boot env vars: REDIS_HOST, REDIS_PORT.
-# Health check on Redis before starting Spring Boot.
-# Angular container built from Dockerfile with nginx serving dist/.
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend

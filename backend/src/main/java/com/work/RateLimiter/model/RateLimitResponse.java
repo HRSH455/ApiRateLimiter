@@ -1,6 +1,8 @@
 package com.work.RateLimiter.model;
 
-public class RateLimitResponse {
+// Record representing the JSON error response body for rate limit exceeded.
+// Fields: message (String), retryAfterSeconds (int)
+public record RateLimitResponse(String message, int retryAfterSeconds) {
     
 }
 

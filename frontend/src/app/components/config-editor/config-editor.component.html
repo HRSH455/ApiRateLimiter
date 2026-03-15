@@ -1,0 +1,7 @@
+<h2>Config Editor</h2>
+<label>Endpoint: <input [(ngModel)]="config.endpoint"></label><br>
+<label>Method: <input [(ngModel)]="config.method"></label><br>
+<label>Limit: <input type="number" [(ngModel)]="config.limit"></label><br>
+<label>Window Seconds: <input type="number" [(ngModel)]="config.windowSeconds"></label><br>
+<label>Strategy: <input [(ngModel)]="config.strategy"></label><br>
+<button (click)="saveConfig()">Save Config</button>

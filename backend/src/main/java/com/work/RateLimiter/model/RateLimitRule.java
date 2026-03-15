@@ -1,10 +1,7 @@
 package com.work.RateLimiter.model;
 
-
-// Immutable record representing the result of a rate limit check.
-// Fields: allowed (boolean), limit (int), remaining (int),
-//         resetAt (Instant), retryAfter (Duration, nullable)
-// Use Java 21 record syntax.
-public record RateLimitRule() {
+// Immutable record representing a rate limit rule configuration.
+// Fields: limit (int), windowSecs (int), strategy (String), keyPrefix (String)
+public record RateLimitRule(int limit, int windowSecs, String strategy, String keyPrefix) {
     
 }
