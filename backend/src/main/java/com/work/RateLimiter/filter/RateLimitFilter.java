@@ -4,6 +4,7 @@ import com.work.RateLimiter.model.RateLimitResult;
 import com.work.RateLimiter.model.RateLimitRule;
 import com.work.RateLimiter.resolver.ClientIdentityResolver;
 import com.work.RateLimiter.service.RateLimitService;
+import com.work.RateLimiter.service.RateLimitStatsService;
 import com.work.RateLimiter.util.RateLimitHeaderWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -29,17 +30,28 @@ import java.util.Map;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitService service;
+    private final RateLimitStatsService statsService;
     private final ClientIdentityResolver resolver;
     private final Map<String, RateLimitRule> rules;
 
-    public RateLimitFilter(RateLimitService service, ClientIdentityResolver resolver, Map<String, RateLimitRule> rules) {
+    public RateLimitFilter(RateLimitService service, RateLimitStatsService statsService, ClientIdentityResolver resolver, Map<String, RateLimitRule> rules) {
         this.service = service;
+        this.statsService = statsService;
         this.resolver = resolver;
         this.rules = rules;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+        // Always allow CORS for the frontend app (including on error paths)
+        setCorsHeaders(response);
+
+        // Preflight requests should not be rate limited
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
+
         String path = request.getRequestURI();
         RateLimitRule rule = rules.get(path);
         if (rule == null) {
@@ -55,11 +67,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
             result = service.checkRateLimit(rule.keyPrefix() + ":" + identity, rule);
         } catch (Exception e) {
             // Redis down, fail open
+            statsService.recordAllowed();
             chain.doFilter(request, response);
             return;
         }
 
         if (!result.allowed()) {
+            statsService.recordBlocked();
             response.setStatus(429);
             response.setContentType("application/json");
             if (result.retryAfter() != null) {
@@ -70,7 +84,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         // Allowed
+        statsService.recordAllowed();
         RateLimitHeaderWriter.writeHeaders(response, result);
         chain.doFilter(request, response);
+    }
+
+    private void setCorsHeaders(HttpServletResponse response) {
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:4200");
+        response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+        response.setHeader("Access-Control-Expose-Headers", "RateLimit-Limit,RateLimit-Remaining,RateLimit-Reset,Retry-After");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
     }
 }

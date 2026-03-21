@@ -1,22 +1,22 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { RateLimitRule, RateLimitStats } from '../models/rate-limit.model';
+import { RateLimitRule, RateLimitRuleMap, RateLimitStats } from '../models/rate-limit.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RateLimitService {
-  private baseUrl = 'http://localhost:8080/api/admin';
+  private baseUrl = 'http://localhost:8080/admin/rate-limit';
 
   constructor(private http: HttpClient) { }
 
-  getConfig(): Observable<RateLimitRule[]> {
-    return this.http.get<RateLimitRule[]>(`${this.baseUrl}/config`);
+  getConfig(): Observable<RateLimitRuleMap> {
+    return this.http.get<RateLimitRuleMap>(`${this.baseUrl}/config`);
   }
 
-  updateConfig(config: RateLimitRule[]): Observable<any> {
-    return this.http.put(`${this.baseUrl}/config`, config);
+  updateConfig(config: RateLimitRuleMap): Observable<RateLimitRuleMap> {
+    return this.http.put<RateLimitRuleMap>(`${this.baseUrl}/config`, config);
   }
 
   getStats(): Observable<RateLimitStats> {

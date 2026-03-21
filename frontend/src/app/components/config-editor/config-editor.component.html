@@ -1,7 +1,25 @@
 <h2>Config Editor</h2>
-<label>Endpoint: <input [(ngModel)]="config.endpoint"></label><br>
-<label>Method: <input [(ngModel)]="config.method"></label><br>
-<label>Limit: <input type="number" [(ngModel)]="config.limit"></label><br>
-<label>Window Seconds: <input type="number" [(ngModel)]="config.windowSeconds"></label><br>
-<label>Strategy: <input [(ngModel)]="config.strategy"></label><br>
-<button (click)="saveConfig()">Save Config</button>
+<div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+
+<ng-container *ngIf="configMap | keyvalue as entries">
+  <div *ngIf="entries.length > 0; else loading">
+    <label>
+      Select endpoint:
+      <select [(ngModel)]="selectedPath" (ngModelChange)="applySelectedConfig()">
+        <option *ngFor="let entry of entries" [value]="entry.key">{{ entry.key }}</option>
+      </select>
+    </label>
+    <br>
+
+    <label>Limit: <input type="number" [(ngModel)]="config.limit"></label><br>
+    <label>Window Seconds: <input type="number" [(ngModel)]="config.windowSeconds"></label><br>
+    <label>Strategy: <input [(ngModel)]="config.strategy"></label><br>
+    <label>Key Prefix: <input [(ngModel)]="config.keyPrefix"></label><br>
+
+    <button (click)="updateConfig()">Update Config</button>
+  </div>
+</ng-container>
+
+<ng-template #loading>
+  <p>Loading config...</p>
+</ng-template>

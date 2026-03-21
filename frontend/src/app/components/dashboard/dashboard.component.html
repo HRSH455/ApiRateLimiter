@@ -1,7 +1,10 @@
 <h2>Rate Limit Dashboard</h2>
+<div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
 <div *ngIf="stats">
   <p>Total Requests: {{ stats.totalRequests }}</p>
   <p>Allowed Requests: {{ stats.allowedRequests }}</p>
   <p>Blocked Requests: {{ stats.blockedRequests }}</p>
-  <p>Current Window: {{ stats.currentWindow.start }} - {{ stats.currentWindow.end }}</p>
+</div>
+<div *ngIf="!stats && !errorMessage">
+  <p>Loading stats...</p>
 </div>

@@ -2,11 +2,15 @@
 <label>Endpoint: <input [(ngModel)]="endpoint"></label>
 <button (click)="sendRequest()">Send Request</button>
 
+<div *ngIf="errorMessage" class="error">
+  {{ errorMessage }}
+</div>
+
 <h3>Response</h3>
 <p>Status: {{ response.status }}</p>
 <pre>{{ response.body | json }}</pre>
 
-<h3>Headers</h3>
+<h3>Headers <button (click)="explainHeaders()">Explain</button></h3>
 <ul>
   <li *ngFor="let header of headers | keyvalue">{{ header.key }}: {{ header.value }}</li>
 </ul>

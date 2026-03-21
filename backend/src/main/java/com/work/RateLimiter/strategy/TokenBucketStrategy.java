@@ -27,7 +27,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
     // ARGV[2] = refill rate (tokens/sec)
     // ARGV[3] = capacity
     // ARGV[4] = TTL
-    // Returns: tokens after operation (if allowed, after consume; if not, current)
+    // Returns: "allowedFlag,tokensAfterOperation"
     private static final String TOKEN_BUCKET_LUA = """
         local last = redis.call('HGET', KEYS[1], 'last')
         local tokens = redis.call('HGET', KEYS[1], 'tokens')
@@ -45,7 +45,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
             redis.call('HSET', KEYS[1], 'last', now, 'tokens', tokens)
             redis.call('EXPIRE', KEYS[1], ARGV[4])
         end
-        return tokens
+        return tostring(allowed and 1 or 0) .. ',' .. tostring(tokens)
         """;
 
     @Override
@@ -54,13 +54,16 @@ public class TokenBucketStrategy implements RateLimitStrategy {
         double rate = (double) rule.limit() / rule.windowSecs();
         String bucketKey = RedisKeyBuilder.buildKey(rule.keyPrefix(), "token", key);
 
-        Double tokens = store.evalLua(TOKEN_BUCKET_LUA, Double.class, new String[]{bucketKey}, 
+        String evaluation = store.evalLua(TOKEN_BUCKET_LUA, String.class, new String[]{bucketKey},
             new String[]{String.valueOf(now), String.valueOf(rate), String.valueOf(rule.limit()), String.valueOf(rule.windowSecs())});
 
-        boolean allowed = tokens >= 1.0;
-        int remaining = (int) Math.floor(tokens);
-        Instant resetAt = allowed ? Instant.now() : Instant.now().plusSeconds((long) Math.ceil((1 - tokens) / rate));
-        Duration retryAfter = allowed ? null : Duration.ofSeconds((long) Math.ceil((1 - tokens) / rate));
+        String[] parts = evaluation.split(",", 2);
+        boolean allowed = "1".equals(parts[0]);
+        double tokens = Double.parseDouble(parts[1]);
+        int remaining = Math.max(0, (int) Math.floor(tokens));
+        long secondsToNextToken = (long) Math.ceil(Math.max(0.0, (1.0 - tokens) / rate));
+        Instant resetAt = allowed ? Instant.now() : Instant.now().plusSeconds(secondsToNextToken);
+        Duration retryAfter = allowed ? null : Duration.ofSeconds(secondsToNextToken);
 
         return new RateLimitResult(allowed, rule.limit(), remaining, resetAt, retryAfter);
     }

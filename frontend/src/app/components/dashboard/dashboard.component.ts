@@ -13,6 +13,7 @@ import { RateLimitStats } from '../../models/rate-limit.model';
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   stats: RateLimitStats | null = null;
+  errorMessage = '';
   private subscription: Subscription = new Subscription();
 
   constructor(private rateLimitService: RateLimitService) { }
@@ -29,8 +30,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadStats(): void {
-    this.rateLimitService.getStats().subscribe((data: RateLimitStats) => {
-      this.stats = data;
+    this.rateLimitService.getStats().subscribe({
+      next: (data: RateLimitStats) => {
+        this.stats = data;
+        this.errorMessage = '';
+      },
+      error: (err) => {
+        this.stats = null;
+        this.errorMessage = 'Unable to load stats: ' + (err?.message || 'network error');
+      }
     });
   }
 

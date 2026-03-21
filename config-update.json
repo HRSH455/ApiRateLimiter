@@ -1,0 +1,1 @@
+﻿{ /api/user:{limit:20,windowSecs:60,strategy:fixed,keyPrefix:user}}

@@ -1,8 +1,6 @@
 package com.work.RateLimiter.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 // Demo REST controller with endpoints that have different rate limits.
@@ -13,6 +11,7 @@ import java.util.Map;
 //   GET /api/admin   → strict limit
 @RestController
 @RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:4200")
 public class DemoApiController {
 
     @GetMapping("/public")

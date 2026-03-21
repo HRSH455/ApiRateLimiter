@@ -1,7 +1,8 @@
 package com.work.RateLimiter.controller;
 
 import com.work.RateLimiter.model.RateLimitRule;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.work.RateLimiter.model.RateLimitStats;
+import com.work.RateLimiter.service.RateLimitStatsService;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
@@ -17,16 +18,16 @@ import java.util.Map;
 public class RateLimitAdminController {
 
     private final Map<String, RateLimitRule> rules;
-    private final StringRedisTemplate redisTemplate;
+    private final RateLimitStatsService statsService;
 
-    public RateLimitAdminController(Map<String, RateLimitRule> rules, StringRedisTemplate redisTemplate) {
+    public RateLimitAdminController(Map<String, RateLimitRule> rules, RateLimitStatsService statsService) {
         this.rules = rules;
-        this.redisTemplate = redisTemplate;
+        this.statsService = statsService;
     }
 
     @GetMapping("/stats")
-    public Map<String, RateLimitRule> getStats() {
-        return rules; // Placeholder, return rules as stats
+    public RateLimitStats getStats() {
+        return statsService.snapshot();
     }
 
     @GetMapping("/config")
@@ -34,13 +35,30 @@ public class RateLimitAdminController {
         return rules;
     }
 
+    @PutMapping("/config")
+    public Map<String, RateLimitRule> updateConfig(@RequestBody Map<String, RateLimitRule> newRules) {
+        // Update rules at runtime without redeploy
+        // 1. Clear old rules
+        rules.clear();
+        // 2. Add new rules
+        rules.putAll(newRules);
+        // 3. Clear Redis counters for updated rules (reset rate limits)
+        for (String keyPrefix : newRules.values().stream()
+                .map(RateLimitRule::keyPrefix)
+                .distinct()
+                .toList()) {
+            statsService.clearByPrefix(keyPrefix);
+        }
+        return rules;
+    }
+
     @PostMapping("/config")
-    public void updateConfig(@RequestBody Map<String, RateLimitRule> newRules) {
-        // Placeholder, not implemented
+    public Map<String, RateLimitRule> updateConfigPost(@RequestBody Map<String, RateLimitRule> newRules) {
+        return updateConfig(newRules);
     }
 
     @DeleteMapping("/keys/{key}")
     public void clearKey(@PathVariable String key) {
-        redisTemplate.delete(key);
+        statsService.clearExactKey(key);
     }
 }
