@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RateLimitService } from '../../services/rate-limit.service';
 import { RateLimitRule, RateLimitRuleMap } from '../../models/rate-limit.model';
 
@@ -9,18 +10,20 @@ import { RateLimitRule, RateLimitRuleMap } from '../../models/rate-limit.model';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './config-editor.component.html',
-  styleUrls: ['./config-editor.component.css']
+  styleUrls: ['./config-editor.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ConfigEditorComponent implements OnInit {
   configMap: RateLimitRuleMap = {};
   selectedPath = '';
   config: RateLimitRule = {
     limit: 100,
-    windowSeconds: 60,
+    windowSecs: 60,
     strategy: 'fixed',
     keyPrefix: ''
   };
   errorMessage = '';
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(private rateLimitService: RateLimitService) { }
 
@@ -29,7 +32,9 @@ export class ConfigEditorComponent implements OnInit {
   }
 
   loadConfig(): void {
-    this.rateLimitService.getConfig().subscribe({
+    this.rateLimitService.getConfigMap().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: (data: RateLimitRuleMap) => {
         this.configMap = data;
         const paths = Object.keys(data);
@@ -54,6 +59,7 @@ export class ConfigEditorComponent implements OnInit {
     }
     this.config = {
       ...rule,
+      windowSecs: rule.windowSecs ?? rule.windowSeconds ?? 60,
       keyPrefix: rule.keyPrefix || this.selectedPath
     };
   }
@@ -63,13 +69,15 @@ export class ConfigEditorComponent implements OnInit {
       ...this.configMap,
       [this.selectedPath]: {
         limit: this.config.limit,
-        windowSeconds: this.config.windowSeconds,
+        windowSecs: this.config.windowSecs ?? this.config.windowSeconds ?? 60,
         strategy: this.config.strategy,
         keyPrefix: this.config.keyPrefix || this.selectedPath
       }
     };
 
-    this.rateLimitService.updateConfig(updated).subscribe({
+    this.rateLimitService.updateConfigMap(updated).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
       next: () => {
         alert('Config updated');
         this.loadConfig();

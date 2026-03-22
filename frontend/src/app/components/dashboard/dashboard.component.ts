@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subscription, interval } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RateLimitService } from '../../services/rate-limit.service';
 import { RateLimitStats } from '../../models/rate-limit.model';
 
@@ -9,29 +9,21 @@ import { RateLimitStats } from '../../models/rate-limit.model';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.css']
+  styleUrls: ['./dashboard.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit {
   stats: RateLimitStats | null = null;
   errorMessage = '';
-  private subscription: Subscription = new Subscription();
 
-  constructor(private rateLimitService: RateLimitService) { }
+  private readonly rateLimitService = inject(RateLimitService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    this.loadStats();
-    this.subscription.add(
-      interval(3000).subscribe(() => this.loadStats())
-    );
-  }
-
-  ngOnDestroy(): void {
-    this.subscription.unsubscribe();
-  }
-
-  private loadStats(): void {
-    this.rateLimitService.getStats().subscribe({
-      next: (data: RateLimitStats) => {
+    this.rateLimitService.getStatsPolling(3000).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (data) => {
         this.stats = data;
         this.errorMessage = '';
       },

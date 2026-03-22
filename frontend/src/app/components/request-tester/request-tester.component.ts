@@ -1,26 +1,37 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpResponse } from '@angular/common/http';
+import { HttpResponse } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RateLimitService } from '../../services/rate-limit.service';
 
 @Component({
   selector: 'app-request-tester',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './request-tester.component.html',
-  styleUrls: ['./request-tester.component.css']
+  styleUrls: ['./request-tester.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RequestTesterComponent {
-  endpoint = 'http://localhost:8080/api/public';
+  endpoint = '';
+  endpoints = ['/api/public', '/api/user', '/api/admin'];
   response: any = {};
   headers: { [key: string]: string } = {};
   errorMessage = '';
 
-  constructor(private http: HttpClient) { }
+  readonly rateLimitService = inject(RateLimitService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    this.endpoint = this.rateLimitService.withApiBase('/api/public');
+  }
 
   sendRequest(): void {
     this.errorMessage = '';
-    this.http.get(this.endpoint, { observe: 'response' }).subscribe(
+    this.rateLimitService.sendGet(this.endpoint).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(
       (res: HttpResponse<any>) => {
         this.response = { status: res.status, body: res.body };
         this.headers = {};

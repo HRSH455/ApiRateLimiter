@@ -1,0 +1,16 @@
+.shell {
+  font-family: Arial, sans-serif;
+  padding: 16px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+nav button {
+  margin-left: 8px;
+}

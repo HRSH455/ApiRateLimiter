@@ -1,4 +1,16 @@
-<h1>{{ title() }}</h1>
-<app-dashboard></app-dashboard>
-<app-config-editor></app-config-editor>
-<app-request-tester></app-request-tester>
+<div class="shell">
+  <header class="topbar">
+    <h1>{{ title }}</h1>
+    <nav>
+      <button (click)="currentView = 'dashboard'">Dashboard</button>
+      <button (click)="currentView = 'config'">Config Editor</button>
+      <button (click)="currentView = 'tester'">Request Tester</button>
+    </nav>
+  </header>
+
+  <main>
+    <app-dashboard *ngIf="currentView === 'dashboard'"></app-dashboard>
+    <app-config-editor *ngIf="currentView === 'config'"></app-config-editor>
+    <app-request-tester *ngIf="currentView === 'tester'"></app-request-tester>
+  </main>
+</div>

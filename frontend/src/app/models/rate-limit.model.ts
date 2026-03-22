@@ -1,6 +1,8 @@
 export interface RateLimitRule {
   limit: number;
-  windowSeconds: number;
+  // Backend contract uses windowSecs; keep windowSeconds optional for UI compatibility.
+  windowSecs: number;
+  windowSeconds?: number;
   strategy: string;
   keyPrefix?: string;
   // Optional fields used by the frontend for editing, not sent to the backend.
@@ -21,8 +23,5 @@ export interface RateLimitStats {
   totalRequests: number;
   allowedRequests: number;
   blockedRequests: number;
-  currentWindow: {
-    start: number;
-    end: number;
-  };
+  activeKeys: number;
 }

@@ -12,6 +12,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 
@@ -28,6 +30,8 @@ import java.util.Map;
 //   6. if allowed: set RateLimit-* headers and continue chain
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
     private final RateLimitService service;
     private final RateLimitStatsService statsService;
@@ -67,6 +71,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             result = service.checkRateLimit(rule.keyPrefix() + ":" + identity, rule);
         } catch (Exception e) {
             // Redis down, fail open
+            log.warn("Rate limit check failed (fail-open). Allowing request. reason={}", e.getMessage());
             statsService.recordAllowed();
             chain.doFilter(request, response);
             return;

@@ -4,6 +4,7 @@
   <p>Total Requests: {{ stats.totalRequests }}</p>
   <p>Allowed Requests: {{ stats.allowedRequests }}</p>
   <p>Blocked Requests: {{ stats.blockedRequests }}</p>
+  <p>Active Keys: {{ stats.activeKeys }}</p>
 </div>
 <div *ngIf="!stats && !errorMessage">
   <p>Loading stats...</p>

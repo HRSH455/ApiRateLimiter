@@ -1,5 +1,12 @@
 <h2>Request Tester</h2>
-<label>Endpoint: <input [(ngModel)]="endpoint"></label>
+<label>
+  Endpoint:
+  <select [(ngModel)]="endpoint">
+    <option *ngFor="let path of endpoints" [value]="rateLimitService.withApiBase(path)">
+      {{ path }}
+    </option>
+  </select>
+</label>
 <button (click)="sendRequest()">Send Request</button>
 
 <div *ngIf="errorMessage" class="error">
