@@ -1,0 +1,20 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--xl);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--md);
+  opacity: 0.5;
+}
+
+.empty-message {
+  font-size: 14px;
+  font-weight: 500;
+}

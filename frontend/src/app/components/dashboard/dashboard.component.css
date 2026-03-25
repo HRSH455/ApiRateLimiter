@@ -1,0 +1,186 @@
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--xl);
+}
+
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 var(--xs) 0;
+  color: var(--text-primary);
+}
+
+.highlight {
+  color: var(--accent-green);
+}
+
+.page-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--lg);
+  margin-bottom: var(--xl);
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+.stat-glow {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  opacity: 0.06;
+}
+
+.stat-glow-blue { background: var(--accent-blue); }
+.stat-glow-green { background: var(--accent-green); }
+.stat-glow-red { background: var(--accent-red); }
+.stat-glow-yellow { background: var(--accent-yellow); }
+
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: var(--xs);
+  transition: opacity 0.2s ease;
+}
+
+.stat-value.updating {
+  opacity: 0.4;
+}
+
+.stat-value-blue { color: var(--accent-blue); }
+.stat-value-green { color: var(--accent-green); }
+.stat-value-red { color: var(--accent-red); }
+.stat-value-yellow { color: var(--accent-yellow); }
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+/* Block Rate Card */
+.block-rate-card {
+  margin-bottom: var(--xl);
+}
+
+.block-rate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--md);
+}
+
+.block-rate-percentage {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-red);
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-red);
+  transition: width 0.3s ease;
+}
+
+/* Activity Feed */
+.activity-feed {
+  margin-bottom: var(--xl);
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--md);
+}
+
+.activity-count {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding: var(--sm) 0;
+  text-align: left;
+}
+
+.table td {
+  border-bottom: 1px solid var(--border);
+  padding: var(--md) 0;
+  transition: background 0.15s;
+}
+
+.table tbody tr:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.table .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--md);
+  background: var(--accent-red-dim);
+  border: 1px solid var(--accent-red);
+  border-radius: 8px;
+  padding: var(--md);
+  color: var(--accent-red);
+  margin-top: var(--lg);
+}
+
+.error-icon {
+  font-size: 16px;
+}
+
+.btn-small {
+  font-size: 12px;
+  padding: 4px 8px;
+}

@@ -1,25 +1,139 @@
-<h2>Config Editor</h2>
-<div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
-
-<ng-container *ngIf="configMap | keyvalue as entries">
-  <div *ngIf="entries.length > 0; else loading">
-    <label>
-      Select endpoint:
-      <select [(ngModel)]="selectedPath" (ngModelChange)="applySelectedConfig()">
-        <option *ngFor="let entry of entries" [value]="entry.key">{{ entry.key }}</option>
-      </select>
-    </label>
-    <br>
-
-    <label>Limit: <input type="number" [(ngModel)]="config.limit"></label><br>
-    <label>Window Seconds: <input type="number" [(ngModel)]="config.windowSecs"></label><br>
-    <label>Strategy: <input [(ngModel)]="config.strategy"></label><br>
-    <label>Key Prefix: <input [(ngModel)]="config.keyPrefix"></label><br>
-
-    <button (click)="updateConfig()">Update Config</button>
+<!-- Page Header -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      Rate Limit <span class="highlight">Config</span>
+    </h1>
+    <p class="page-subtitle">Edit rules without redeploying</p>
   </div>
-</ng-container>
+  <button class="btn-primary" (click)="openNewRuleModal()">
+    + New Rule
+  </button>
+</div>
 
-<ng-template #loading>
-  <p>Loading config...</p>
-</ng-template>
+<!-- Rules Table -->
+<div class="card rules-card">
+  <div class="rules-header">
+    <span class="section-label">RULES</span>
+    <span class="rules-count badge">{{ rules.length }}</span>
+  </div>
+
+  <div *ngIf="rules.length > 0; else noRules">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>PATH</th>
+          <th>ENV</th>
+          <th>LIMIT</th>
+          <th>WINDOW</th>
+          <th>STRATEGY</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let rule of rules; trackBy: trackByPath"
+            class="rule-row animate-row">
+          <td class="mono">{{ rule.path }}</td>
+          <td>
+            <span class="badge env-badge env-{{ getEnvBadge(rule.path) }}">
+              {{ getEnvBadge(rule.path).toUpperCase() }}
+            </span>
+          </td>
+          <td class="mono">{{ rule.rule.limit }}</td>
+          <td class="mono">{{ rule.rule.windowSecs }}s</td>
+          <td>
+            <span class="badge strategy-badge" [ngClass]="getStrategyBadgeClass(rule.rule.strategy)">
+              {{ rule.rule.strategy }}
+            </span>
+          </td>
+          <td>
+            <app-toggle [enabled]="rule.enabled" (toggled)="toggleRule(rule.path, $event)"></app-toggle>
+          </td>
+          <td class="actions">
+            <button class="action-btn" (click)="editRule(rule.path)" title="Edit">
+              ✎
+            </button>
+            <button class="action-btn delete" (click)="deleteRule(rule.path)" title="Delete">
+              ✕
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #noRules>
+    <app-empty-state icon="📋" message="No rules configured yet"></app-empty-state>
+  </ng-template>
+</div>
+
+<!-- Edit/Create Modal -->
+<div *ngIf="showModal" class="modal-backdrop" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">{{ editingPath ? 'Edit' : 'New' }} Rule</h2>
+      <button class="modal-close" (click)="closeModal()">×</button>
+    </div>
+
+    <form [formGroup]="ruleForm" (ngSubmit)="saveRule()" class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Environment</label>
+          <select class="input" disabled>
+            <option>Development</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rollout %</label>
+          <input type="range" class="input" formControlName="rolloutPercent" min="0" max="100">
+          <span class="rollout-value">{{ ruleForm.get('rolloutPercent')?.value }}%</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Path</label>
+        <input type="text" class="input" formControlName="path" placeholder="/api/endpoint">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Limit</label>
+          <input type="number" class="input" formControlName="limit" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Window</label>
+          <input type="number" class="input" formControlName="windowSecs" min="1">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Strategy</label>
+        <select class="input" formControlName="strategy">
+          <option value="fixed">Fixed Window</option>
+          <option value="sliding">Sliding Window</option>
+          <option value="token">Token Bucket</option>
+        </select>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn-ghost" (click)="closeModal()">Cancel</button>
+      <button class="btn-primary" (click)="saveRule()" [disabled]="!ruleForm.valid">
+        Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notifications -->
+<div *ngIf="toastMessage" class="toast" [ngClass]="toastType">
+  <span>{{ toastMessage }}</span>
+</div>
+
+<!-- Error State -->
+<div *ngIf="errorMessage" class="error-banner">
+  <span class="error-icon">⚠</span>
+  <span>{{ errorMessage }}</span>
+  <button class="btn-ghost btn-small" (click)="loadConfig()">Retry</button>
+</div>

@@ -1,0 +1,248 @@
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--xl);
+}
+
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 var(--xs) 0;
+  color: var(--text-primary);
+}
+
+.highlight {
+  color: var(--accent-green);
+}
+
+.page-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+/* Rules Card */
+.rules-card {
+  margin-bottom: var(--xl);
+}
+
+.rules-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--md);
+}
+
+.rules-count {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+/* Table */
+.table .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.rule-row {
+  transition: background 0.15s;
+}
+
+.rule-row:hover .actions {
+  opacity: 1;
+}
+
+.env-badge {
+  font-size: 10px;
+}
+
+.env-dev {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+.env-staging {
+  background: var(--accent-yellow-dim);
+  color: var(--accent-yellow);
+}
+
+.env-prod {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+}
+
+.strategy-badge {
+  font-size: 10px;
+}
+
+.strategy-fixed {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+.strategy-sliding {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+}
+
+.strategy-token {
+  background: var(--accent-yellow-dim);
+  color: var(--accent-yellow);
+}
+
+.actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  margin-left: var(--xs);
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.action-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.action-btn.delete:hover {
+  color: var(--accent-red);
+}
+
+/* Modal */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--lg);
+  padding-bottom: var(--md);
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.modal-close:hover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  margin-bottom: var(--lg);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--md);
+  margin-bottom: var(--md);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xs);
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+.rollout-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--accent-green);
+  text-align: center;
+  margin-top: var(--xs);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--md);
+  padding-top: var(--md);
+  border-top: 1px solid var(--border);
+}
+
+/* Toast */
+.toast.success {
+  border-left: 3px solid var(--accent-green);
+}
+
+.toast.error {
+  border-left: 3px solid var(--accent-red);
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--md);
+  background: var(--accent-red-dim);
+  border: 1px solid var(--accent-red);
+  border-radius: 8px;
+  padding: var(--md);
+  color: var(--accent-red);
+  margin-top: var(--lg);
+}
+
+.error-icon {
+  font-size: 16px;
+}
+
+.btn-small {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+/* Animations */
+.animate-row {
+  animation: rowIn 0.3s ease both;
+}
+
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

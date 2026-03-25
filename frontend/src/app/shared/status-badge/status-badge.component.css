@@ -1,0 +1,22 @@
+.status-badge {
+  background: var(--accent-red-dim);
+  color: var(--accent-red);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.status-badge.success {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+}
+
+.status-badge.warning {
+  background: var(--accent-yellow-dim);
+  color: var(--accent-yellow);
+}
+
+.status-badge.error {
+  background: var(--accent-red-dim);
+  color: var(--accent-red);
+}

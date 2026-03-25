@@ -1,23 +1,123 @@
-<h2>Request Tester</h2>
-<label>
-  Endpoint:
-  <select [(ngModel)]="endpoint">
-    <option *ngFor="let path of endpoints" [value]="rateLimitService.withApiBase(path)">
-      {{ path }}
-    </option>
-  </select>
-</label>
-<button (click)="sendRequest()">Send Request</button>
-
-<div *ngIf="errorMessage" class="error">
-  {{ errorMessage }}
+<!-- Page Header -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      Request <span class="highlight">Tester</span>
+    </h1>
+    <p class="page-subtitle">Fire requests and watch rate limiting in action</p>
+  </div>
 </div>
 
-<h3>Response</h3>
-<p>Status: {{ response.status }}</p>
-<pre>{{ response.body | json }}</pre>
+<!-- Main Layout -->
+<div class="tester-layout">
+  <!-- Left Panel: Controls -->
+  <div class="controls-panel card">
+    <div class="section-label">SELECT ENDPOINT</div>
 
-<h3>Headers <button (click)="explainHeaders()">Explain</button></h3>
-<ul>
-  <li *ngFor="let header of headers | keyvalue">{{ header.key }}: {{ header.value }}</li>
-</ul>
+    <div class="endpoints-grid">
+      <div *ngFor="let endpoint of endpoints"
+           class="endpoint-card"
+           [class.selected]="selectedEndpoint === endpoint"
+           (click)="selectEndpoint(endpoint)">
+        <div class="endpoint-header">
+          <app-method-badge [method]="endpoint.method"></app-method-badge>
+          <span class="endpoint-path mono">{{ endpoint.path }}</span>
+        </div>
+        <div class="endpoint-limit">{{ endpoint.limit }}</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">USER ID (optional)</label>
+      <input type="text"
+             class="input"
+             [(ngModel)]="userId"
+             placeholder="e.g. user-123">
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn-primary full-width"
+              (click)="sendRequest()"
+              [disabled]="isLoading">
+        <span *ngIf="isLoading">⏳</span>
+        <span *ngIf="!isLoading">🚀</span>
+        SEND REQUEST
+      </button>
+
+      <button class="btn-ghost btn-yellow full-width"
+              (click)="fireRapidRequests()"
+              [disabled]="isLoading">
+        🔥 FIRE 10x RAPID
+      </button>
+    </div>
+
+    <div class="note">
+      Sends 10 requests with 100ms delay. Watch the counter drop.
+    </div>
+  </div>
+
+  <!-- Right Panel: Response -->
+  <div class="response-panel card">
+    <div *ngIf="!response; else responseContent" class="empty-state">
+      <div class="empty-icon">📡</div>
+      <div class="empty-message">Send a request to see the response</div>
+    </div>
+
+    <ng-template #responseContent>
+      <!-- Status -->
+      <div class="response-status">
+        <div class="status-badge-large">
+          <app-status-badge [status]="response.status"></app-status-badge>
+          <span class="status-code mono">{{ response.status }}</span>
+        </div>
+        <div class="response-meta mono">
+          {{ selectedEndpoint?.method }} {{ selectedEndpoint?.path }} {{ response.duration }}ms
+        </div>
+      </div>
+
+      <!-- Rate Limited Banner -->
+      <div *ngIf="isRateLimited()" class="rate-limited-banner">
+        ⚠ RATE LIMITED — Retry after {{ headers['ratelimit-reset'] || 'some time' }}
+      </div>
+
+      <!-- Rate Limit Headers -->
+      <div class="response-section">
+        <div class="section-label">RATE LIMIT HEADERS</div>
+        <div class="headers-list">
+          <div *ngFor="let header of getRateLimitHeaders()" class="header-row">
+            <span class="header-key">{{ header.key }}</span>
+            <span class="header-value mono">{{ header.value }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Body -->
+      <div class="response-section">
+        <div class="response-body-header">
+          <span class="section-label">RESPONSE BODY</span>
+          <button class="btn-ghost btn-small" (click)="toggleResponseBody()">
+            {{ showResponseBody ? '▼' : '▶' }} {{ showResponseBody ? 'collapse' : 'expand' }}
+          </button>
+        </div>
+        <div *ngIf="showResponseBody" class="response-body">
+          <pre class="code-block">{{ response.body | json }}</pre>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+</div>
+
+<!-- History Strip -->
+<div class="history-strip">
+  <div *ngFor="let req of requestHistory" class="history-item" [class.error]="req.status >= 400">
+    <app-status-badge [status]="req.status"></app-status-badge>
+    <span class="history-path mono">{{ req.path }}</span>
+    <span class="history-duration mono">{{ req.duration }}ms</span>
+  </div>
+</div>
+
+<!-- Error Message -->
+<div *ngIf="errorMessage" class="error-banner">
+  <span class="error-icon">⚠</span>
+  <span>{{ errorMessage }}</span>
+</div>

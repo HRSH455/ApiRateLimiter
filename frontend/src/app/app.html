@@ -1,16 +1,43 @@
-<div class="shell">
-  <header class="topbar">
-    <h1>{{ title }}</h1>
-    <nav>
-      <button (click)="currentView = 'dashboard'">Dashboard</button>
-      <button (click)="currentView = 'config'">Config Editor</button>
-      <button (click)="currentView = 'tester'">Request Tester</button>
-    </nav>
-  </header>
+<div class="app-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Logo -->
+    <div class="logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">RateLimiter</span>
+    </div>
 
-  <main>
-    <app-dashboard *ngIf="currentView === 'dashboard'"></app-dashboard>
-    <app-config-editor *ngIf="currentView === 'config'"></app-config-editor>
-    <app-request-tester *ngIf="currentView === 'tester'"></app-request-tester>
+    <!-- Navigation -->
+    <nav class="nav">
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a routerLink="/config" routerLinkActive="active" class="nav-link">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Config</span>
+      </a>
+      <a routerLink="/tester" routerLinkActive="active" class="nav-link">
+        <span class="nav-icon">🚀</span>
+        <span class="nav-label">Tester</span>
+      </a>
+    </nav>
+
+    <!-- Bottom Section -->
+    <div class="sidebar-bottom">
+      <div class="env-badge">
+        <span class="status-dot enabled"></span>
+        DEVELOPMENT
+      </div>
+      <div class="redis-status">
+        <span class="status-dot enabled"></span>
+        Redis OK
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <router-outlet></router-outlet>
   </main>
 </div>

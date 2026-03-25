@@ -1,11 +1,103 @@
-<h2>Rate Limit Dashboard</h2>
-<div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
-<div *ngIf="stats">
-  <p>Total Requests: {{ stats.totalRequests }}</p>
-  <p>Allowed Requests: {{ stats.allowedRequests }}</p>
-  <p>Blocked Requests: {{ stats.blockedRequests }}</p>
-  <p>Active Keys: {{ stats.activeKeys }}</p>
+<!-- Page Header -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      Live <span class="highlight">Dashboard</span>
+    </h1>
+    <p class="page-subtitle">Real-time rate limit monitoring</p>
+  </div>
+  <button class="btn-ghost" (click)="refreshStats()">
+    <span class="mono">↻</span> Refresh
+  </button>
 </div>
-<div *ngIf="!stats && !errorMessage">
-  <p>Loading stats...</p>
+
+<!-- Stats Row -->
+<div class="stats-grid" *ngIf="stats; else loadingStats">
+  <div class="stat-card">
+    <div class="stat-glow stat-glow-blue"></div>
+    <div class="stat-value stat-value-blue">{{ stats.totalRequests | number }}</div>
+    <div class="stat-label">requests</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-glow stat-glow-green"></div>
+    <div class="stat-value stat-value-green">{{ stats.allowedRequests | number }}</div>
+    <div class="stat-label">passed</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-glow stat-glow-red"></div>
+    <div class="stat-value stat-value-red">{{ stats.blockedRequests | number }}</div>
+    <div class="stat-label">rejected</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-glow stat-glow-yellow"></div>
+    <div class="stat-value stat-value-yellow">{{ stats.activeKeys | number }}</div>
+    <div class="stat-label">in redis</div>
+  </div>
+</div>
+
+<ng-template #loadingStats>
+  <div class="stats-grid">
+    <div class="stat-card skeleton"></div>
+    <div class="stat-card skeleton"></div>
+    <div class="stat-card skeleton"></div>
+    <div class="stat-card skeleton"></div>
+  </div>
+</ng-template>
+
+<!-- Block Rate Bar -->
+<div class="card block-rate-card" *ngIf="stats">
+  <div class="block-rate-header">
+    <span class="section-label">BLOCK RATE</span>
+    <span class="block-rate-percentage mono">
+      {{ getBlockRate() }}%
+    </span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill"
+         [style.width.%]="getBlockRate()"></div>
+  </div>
+</div>
+
+<!-- Activity Feed -->
+<div class="card activity-feed">
+  <div class="activity-header">
+    <span class="section-label">RECENT REQUESTS</span>
+    <span class="activity-count badge">{{ activityFeed.length }}</span>
+  </div>
+
+  <div *ngIf="activityFeed.length > 0; else noActivity">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>TIME</th>
+          <th>METHOD</th>
+          <th>PATH</th>
+          <th>STATUS</th>
+          <th>DURATION</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let request of activityFeed; trackBy: trackByRequest; let i = index"
+            class="animate-row"
+            [style.animation-delay.ms]="i * 30">
+          <td class="mono">{{ request.time | date:'HH:mm:ss' }}</td>
+          <td><app-method-badge [method]="request.method"></app-method-badge></td>
+          <td class="mono">{{ request.path }}</td>
+          <td><app-status-badge [status]="request.status"></app-status-badge></td>
+          <td class="mono">{{ request.duration }}ms</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #noActivity>
+    <app-empty-state icon="📊" message="No requests yet — fire some from the Request Tester"></app-empty-state>
+  </ng-template>
+</div>
+
+<!-- Error State -->
+<div *ngIf="errorMessage" class="error-banner">
+  <span class="error-icon">⚠</span>
+  <span>{{ errorMessage }}</span>
+  <button class="btn-ghost btn-small" (click)="refreshStats()">Retry</button>
 </div>

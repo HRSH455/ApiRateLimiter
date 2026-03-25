@@ -1,0 +1,24 @@
+.method-badge {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+.method-badge.get {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+.method-badge.post {
+  background: var(--accent-yellow-dim);
+  color: var(--accent-yellow);
+}
+
+.method-badge.put {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+.method-badge.delete {
+  background: var(--accent-red-dim);
+  color: var(--accent-red);
+}
