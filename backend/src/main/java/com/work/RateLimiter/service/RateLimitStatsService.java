@@ -14,9 +14,8 @@ public class RateLimitStatsService {
 
     private static final String RATE_LIMIT_KEY_PREFIX = "rl:";
 
-    private final AtomicLong totalRequests = new AtomicLong();
-    private final AtomicLong allowedRequests = new AtomicLong();
-    private final AtomicLong blockedRequests = new AtomicLong();
+    private final String KEY_ALLOWED = "stats:allowed";
+    private final String KEY_BLOCKED = "stats:blocked";
     private final StringRedisTemplate redisTemplate;
 
     public RateLimitStatsService(StringRedisTemplate redisTemplate) {
@@ -24,22 +23,23 @@ public class RateLimitStatsService {
     }
 
     public void recordAllowed() {
-        totalRequests.incrementAndGet();
-        allowedRequests.incrementAndGet();
+        redisTemplate.opsForValue().increment(KEY_ALLOWED);
     }
 
     public void recordBlocked() {
-        totalRequests.incrementAndGet();
-        blockedRequests.incrementAndGet();
+        redisTemplate.opsForValue().increment(KEY_BLOCKED);
     }
 
     public RateLimitStats snapshot() {
-        return new RateLimitStats(
-            totalRequests.get(),
-            allowedRequests.get(),
-            blockedRequests.get(),
-            countActiveKeys()
-        );
+        
+            String allowedStr = redisTemplate.opsForValue().get(KEY_ALLOWED);
+            String blockedStr = redisTemplate.opsForValue().get(KEY_BLOCKED);
+
+            long allowed = allowedStr != null ? Long.parseLong(allowedStr) : 0L;
+            long blocked = blockedStr  != null ? Long.parseLong(blockedStr) : 0L;
+
+            return new RateLimitStats(,allowed + blocked ,allowed, blocked, countActiveKeys());
+        
     }
 
     private long countActiveKeys() {
@@ -85,7 +85,7 @@ public class RateLimitStatsService {
     }
 
     public void clearExactRuntimeKey(String keyPrefix, String strategy, String identity) {
-        String runtimeKey = "rl:" + keyPrefix + ":" + strategy + ":" + identity;
-        redisTemplate.delete(runtimeKey);
+        //String runtimeKey = "rl:" + keyPrefix + ":" + strategy + ":" + identity;
+        redisTemplate.delete("rl:" + keyPrefix + ":" + strategy + ":" + identity);
     }
 }

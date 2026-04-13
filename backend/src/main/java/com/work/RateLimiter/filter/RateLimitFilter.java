@@ -47,12 +47,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-        // Always allow CORS for the frontend app (including on error paths)
-        setCorsHeaders(response);
+        
 
         // Preflight requests should not be rate limited
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            response.setStatus(HttpServletResponse.SC_OK);
+            chain.doFilter(request, response);
             return;
         }
 
@@ -94,11 +93,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    private void setCorsHeaders(HttpServletResponse response) {
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:4200");
-        response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
-        response.setHeader("Access-Control-Expose-Headers", "RateLimit-Limit,RateLimit-Remaining,RateLimit-Reset,Retry-After");
-        response.setHeader("Access-Control-Allow-Credentials", "true");
-    }
+    // private void setCorsHeaders(HttpServletResponse response) {
+    //     response.setHeader("Access-Control-Allow-Origin", "http://localhost:4200");
+    //     response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    //     response.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    //     response.setHeader("Access-Control-Expose-Headers", "RateLimit-Limit,RateLimit-Remaining,RateLimit-Reset,Retry-After");
+    //     response.setHeader("Access-Control-Allow-Credentials", "true");
+    // }
 }
