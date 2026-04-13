@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Observable, interval, startWith, switchMap } from 'rxjs';
 import { RateLimitRule, RateLimitRuleMap, RateLimitStats } from '../models/rate-limit.model';
 import { environment } from '../../environments/environment';
@@ -11,6 +11,16 @@ export class RateLimitService {
   private baseUrl = `${environment.apiUrl}/admin/rate-limit`;
 
   constructor(private http: HttpClient) { }
+
+  //for admin
+  private adminHeaders():{headers: HttpHeaders}{
+    const credentials = btoa(`${environment.adminUserName}:${environment.adminPassword}`);
+    return{
+      headers: new HttpHeaders({
+        'Authorization': `Basic ${credentials}`
+      })
+    }
+  }
 
   // Map-first config API
   getConfigMap(): Observable<RateLimitRuleMap> {

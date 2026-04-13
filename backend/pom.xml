@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.4</version>       <!-- upgraded: 2.7.0 → 3.2.4 -->
+        <version>3.2.4</version>       
         <relativePath/>
     </parent>
 
@@ -29,6 +29,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Security -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -41,14 +47,13 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
 
-        <!-- Jackson — already included by spring-boot-starter-web -->
-        <!-- but explicit is fine -->
+        
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
-        <!-- Lombok — no version, BOM manages it -->
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -71,7 +76,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>  <!-- version managed by Spring Boot BOM, remove hardcoded 1.19.7 -->
+            <scope>test</scope>  <!-- version managed, remove hardcoded 1.19.7 -->
         </dependency>
 
     </dependencies>
@@ -90,13 +95,13 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
-                            <version>${lombok.version}</version>  <!-- BOM provides this variable -->
+                            <version>${lombok.version}</version>  
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
 
-            <!-- Spring Boot plugin — excludes Lombok from final JAR (compile-only) -->
+            <!-- Spring Boot plugin — excludes Lombok from final JAR -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
