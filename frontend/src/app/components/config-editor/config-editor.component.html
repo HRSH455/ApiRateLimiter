@@ -70,7 +70,7 @@
 
 <!-- Edit/Create Modal -->
 <div *ngIf="showModal" class="modal-backdrop" (click)="closeModal()">
-  <div class="modal" (click)="$event.stopPropagation()">
+  <div class="modal show" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">{{ editingPath ? 'Edit' : 'New' }} Rule</h2>
       <button class="modal-close" (click)="closeModal()">×</button>

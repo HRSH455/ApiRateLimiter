@@ -1,0 +1,38 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <h2>RateLimiter Admin</h2>
+    <p class="subtitle">Sign in to manage rate limit rules</p>
+
+    <div class="error-banner" *ngIf="error">
+      {{ error }}
+    </div>
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input
+        id="username"
+        type="text"
+        [(ngModel)]="username"
+        placeholder="Enter username"
+        (keyup.enter)="onLogin()"
+        autocomplete="username"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        [(ngModel)]="password"
+        placeholder="Enter password"
+        (keyup.enter)="onLogin()"
+        autocomplete="current-password"
+      />
+    </div>
+
+    <button (click)="onLogin()" [disabled]="loading">
+      {{ loading ? 'Signing in...' : 'Sign In' }}
+    </button>
+  </div>
+</div>

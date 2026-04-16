@@ -7,7 +7,6 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class RateLimitStatsService {
@@ -38,7 +37,7 @@ public class RateLimitStatsService {
             long allowed = allowedStr != null ? Long.parseLong(allowedStr) : 0L;
             long blocked = blockedStr  != null ? Long.parseLong(blockedStr) : 0L;
 
-            return new RateLimitStats(,allowed + blocked ,allowed, blocked, countActiveKeys());
+            return new RateLimitStats(allowed + blocked ,allowed, blocked, countActiveKeys());
         
     }
 

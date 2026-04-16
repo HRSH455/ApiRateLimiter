@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import com.work.RateLimiter.config.RateLimitConfig;
 
 @SpringBootApplication
-@EnableConfigurationProperties(RateLimitConfig.class) // Enables binding of RateLimitConfig properties from application.yml
+@EnableConfigurationProperties(RateLimitConfig.class) // Enables binding of RateLimitConfig properties from application properties
 public class RateLimiterApplication {
 
 	public static void main(String[] args) {

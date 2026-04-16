@@ -7,9 +7,10 @@ import { RateLimitService } from '../../services/rate-limit.service';
 import { StatusBadgeComponent, MethodBadgeComponent } from '../../shared';
 
 interface Endpoint {
-  method: string;
+  method: 'GET';
   path: string;
   limit: string;
+  requiresAuth?: boolean;
 }
 
 interface RequestHistory {
@@ -38,9 +39,8 @@ export class RequestTesterComponent {
 
   readonly endpoints: Endpoint[] = [
     { method: 'GET', path: '/api/public', limit: '100/min' },
-    { method: 'POST', path: '/api/auth/login', limit: '5/15min' },
     { method: 'GET', path: '/api/user', limit: '50/min' },
-    { method: 'GET', path: '/api/admin', limit: '10/min' }
+    { method: 'GET', path: '/api/admin', limit: '10/min', requiresAuth: true }
   ];
 
   readonly rateLimitService = inject(RateLimitService);
@@ -54,6 +54,13 @@ export class RequestTesterComponent {
     this.selectedEndpoint = endpoint;
   }
 
+  private buildHttpOptions(): object {
+    if (this.selectedEndpoint?.requiresAuth) {
+      return this.rateLimitService.getAdminHeaders();
+    }
+    return {};
+  }
+
   sendRequest(): void {
     if (!this.selectedEndpoint) return;
 
@@ -62,22 +69,27 @@ export class RequestTesterComponent {
     const startTime = Date.now();
 
     const url = this.rateLimitService.withApiBase(this.selectedEndpoint.path);
-    const fullUrl = this.userId ? `${url}?userId=${encodeURIComponent(this.userId)}` : url;
+    const fullUrl = this.userId
+      ? `${url}?userId=${encodeURIComponent(this.userId)}`
+      : url;
 
-    this.rateLimitService.sendGet(fullUrl).pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe({
-      next: (res: HttpResponse<any>) => {
-        const duration = Date.now() - startTime;
-        this.handleResponse(res, duration);
-        this.isLoading = false;
-      },
-      error: (error) => {
-        const duration = Date.now() - startTime;
-        this.handleError(error, duration);
-        this.isLoading = false;
-      }
-    });
+    const httpOptions = this.buildHttpOptions();
+
+    this.rateLimitService
+      .sendGet(fullUrl, httpOptions)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: HttpResponse<any>) => {
+          const duration = Date.now() - startTime;
+          this.handleResponse(res, duration);
+          this.isLoading = false;
+        },
+        error: (error) => {
+          const duration = Date.now() - startTime;
+          this.handleError(error, duration);
+          this.isLoading = false;
+        }
+      });
   }
 
   fireRapidRequests(): void {
@@ -87,32 +99,31 @@ export class RequestTesterComponent {
     this.errorMessage = '';
     let completed = 0;
     const total = 10;
+    const httpOptions = this.buildHttpOptions();
 
     for (let i = 0; i < total; i++) {
       setTimeout(() => {
         const startTime = Date.now();
         const url = this.rateLimitService.withApiBase(this.selectedEndpoint!.path);
-        const fullUrl = this.userId ? `${url}?userId=${encodeURIComponent(this.userId)}` : url;
+        const fullUrl = this.userId
+          ? `${url}?userId=${encodeURIComponent(this.userId)}`
+          : url;
 
-        this.rateLimitService.sendGet(fullUrl).subscribe({
+        this.rateLimitService.sendGet(fullUrl, httpOptions).subscribe({
           next: (res: HttpResponse<any>) => {
             const duration = Date.now() - startTime;
             this.addToHistory(res.status, this.selectedEndpoint!.path, duration);
             completed++;
-            if (completed === total) {
-              this.isLoading = false;
-            }
+            if (completed === total) this.isLoading = false;
           },
           error: (error) => {
             const duration = Date.now() - startTime;
             this.addToHistory(error.status || 0, this.selectedEndpoint!.path, duration);
             completed++;
-            if (completed === total) {
-              this.isLoading = false;
-            }
+            if (completed === total) this.isLoading = false;
           }
         });
-      }, i * 100); // 100ms delay between requests
+      }, i * 100);
     }
   }
 
@@ -148,6 +159,10 @@ export class RequestTesterComponent {
 
     if (status === 0) {
       this.errorMessage = 'Network error: backend unreachable or CORS blocked the request.';
+    } else if (status === 401) {
+      this.errorMessage = 'Unauthorized: check admin credentials in environment.ts.';
+    } else if (status === 429) {
+      this.errorMessage = `Rate limited: too many requests to ${this.selectedEndpoint?.path}.`;
     } else {
       this.errorMessage = `Error ${status}: ${error.message || error.statusText || 'unknown error'}`;
     }

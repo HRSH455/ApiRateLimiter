@@ -49,11 +49,11 @@ public class SlidingWindowStrategy implements RateLimitStrategy {
         String member = UUID.randomUUID().toString();
 
         Long count = store.evalLua(SLIDING_WINDOW_LUA, Long.class, new String[]{windowKey}, 
-            new String[]{String.valueOf(nowMs), String.valueOf(windowStart), member, String.valueOf(rule.windowSecs()), String.valueOf(rule.limit())});
+            new Object[]{String.valueOf(nowMs), String.valueOf(windowStart), member, String.valueOf(rule.windowSecs()), String.valueOf(rule.limit())});
 
         boolean allowed = count < rule.limit();
-        int remaining = Math.max(0, rule.limit() - count.intValue() - (allowed ? 1 : 0));
-        Instant resetAt = Instant.ofEpochMilli(nowMs + (rule.windowSecs() * 1000L - (nowMs % 1000))); // approx next window
+        int remaining = Math.max(0, rule.limit() - (count != null ? count.intValue() :0) - (allowed ? 1 : 0));
+        Instant resetAt = Instant.ofEpochMilli(windowStart + windowMs);
         Duration retryAfter = allowed ? null : Duration.ofSeconds(rule.windowSecs());
 
         return new RateLimitResult(allowed, rule.limit(), remaining, resetAt, retryAfter);

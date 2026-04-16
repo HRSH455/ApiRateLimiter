@@ -1,0 +1,46 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, tap, catchError, throwError } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private readonly BASE_URL = 'http://localhost:8080';
+  private credentials: string | null = null;
+
+  constructor(private http: HttpClient) {}
+
+  login(username: string, password: string): Observable<any> {
+    const encoded = btoa(`${username}:${password}`);
+    const headers = new HttpHeaders({ 'Authorization': `Basic ${encoded}` });
+
+    // Validate credentials by hitting a real admin endpoint
+    return this.http.get(`${this.BASE_URL}/admin/rate-limit/config`, { headers }).pipe(
+      tap(() => {
+        // Credentials are good — store them
+        this.credentials = encoded;
+      }),
+      catchError((error) => {
+        this.credentials = null;
+        if (error.status === 401) {
+          return throwError(() => new Error('Invalid username or password'));
+        }
+        return throwError(() => new Error('Server error, try again later'));
+      })
+    );
+  }
+
+  logout(): void {
+    this.credentials = null;
+  }
+
+  isLoggedIn(): boolean {
+    return this.credentials !== null;
+  }
+
+  getAuthHeaders(): HttpHeaders {
+    if (!this.credentials) {
+      throw new Error('Not authenticated');
+    }
+    return new HttpHeaders({ 'Authorization': `Basic ${this.credentials}` });
+  }
+}

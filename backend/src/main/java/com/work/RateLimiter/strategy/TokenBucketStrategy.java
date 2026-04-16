@@ -55,7 +55,7 @@ public class TokenBucketStrategy implements RateLimitStrategy {
         String bucketKey = RedisKeyBuilder.buildKey(rule.keyPrefix(), "token", key);
 
         String evaluation = store.evalLua(TOKEN_BUCKET_LUA, String.class, new String[]{bucketKey},
-            new String[]{String.valueOf(now), String.valueOf(rate), String.valueOf(rule.limit()), String.valueOf(rule.windowSecs())});
+            new Object[]{String.valueOf(now), String.valueOf(rate), String.valueOf(rule.limit()), String.valueOf(rule.windowSecs())});
 
         String[] parts = evaluation.split(",", 2);
         boolean allowed = "1".equals(parts[0]);

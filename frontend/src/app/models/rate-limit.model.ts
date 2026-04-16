@@ -5,7 +5,6 @@ export interface RateLimitRule {
   windowSeconds?: number;
   strategy: string;
   keyPrefix?: string;
-  // Optional fields used by the frontend for editing, not sent to the backend.
   endpoint?: string;
   method?: string;
 }

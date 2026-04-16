@@ -27,10 +27,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    
     @Value("${admin.username:admin}")
     private String adminUsername;
 
-    @Value("${admin.password}")
+    //default password is "admin123" but should be overridden
+    @Value("${admin.password:admin123}")
     private String adminPassword;
 
     @Bean
@@ -52,7 +54,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Single in-memory admin user — sufficient for a learning project.
     // Password is BCrypt-hashed at startup (never stored in plain text).
     @Bean
     public UserDetailsService userDetailsService(PasswordEncoder encoder) {

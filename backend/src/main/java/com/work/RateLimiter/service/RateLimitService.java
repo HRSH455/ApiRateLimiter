@@ -7,7 +7,6 @@ import com.work.RateLimiter.strategy.FixedWindowStrategy;
 import com.work.RateLimiter.strategy.SlidingWindowStrategy;
 import com.work.RateLimiter.strategy.TokenBucketStrategy;
 import com.work.RateLimiter.store.RedisRateLimitStore;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;

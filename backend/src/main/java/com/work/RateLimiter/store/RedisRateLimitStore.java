@@ -1,45 +1,54 @@
 package com.work.RateLimiter.store;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-
-// Redis abstraction layer for rate limiting operations.
-// Strategies inject this — they never touch RedisTemplate directly.
-// This allows swapping Redis for ConcurrentHashMap in tests.
-// Uses StringRedisTemplate for all operations.
-// incrementAndExpire() uses a Lua script for atomicity.
-// evalLua() executes arbitrary Lua scripts for complex strategies.
+import java.util.List;
+import java.util.Arrays;
 
 @Component
 public class RedisRateLimitStore {
 
     private final StringRedisTemplate redisTemplate;
 
+    // Pre-compile scripts to save memory
+    private static final RedisScript<Long> INCR_EXPIRE_SCRIPT = new DefaultRedisScript<>(
+        """
+        local count = redis.call('INCR', KEYS[1])
+        if count == 1 then
+            redis.call('EXPIRE', KEYS[1], ARGV[1])
+        end
+        return count
+        """, Long.class
+    );
+
     public RedisRateLimitStore(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
-    // Atomically increment key and set TTL only on first increment.
-    // Uses Lua to prevent race between INCR and EXPIRE.
-    // Returns the count AFTER incrementing.
+    /**
+     * Atomically increment key and set TTL only on first increment.
+     * Returns 0 if the operation fails or returns null.
+     */
     public long incrementAndExpire(String key, long ttlSeconds) {
-        String script = """
-            local count = redis.call('INCR', KEYS[1])
-            if count == 1 then
-                redis.call('EXPIRE', KEYS[1], ARGV[1])
-            end
-            return count
-            """;
-        RedisScript<Long> redisScript = RedisScript.of(script, Long.class);
-        return redisTemplate.execute(redisScript, Collections.singletonList(key), String.valueOf(ttlSeconds));
+        Long result = redisTemplate.execute(
+            INCR_EXPIRE_SCRIPT, 
+            Collections.singletonList(key), 
+            String.valueOf(ttlSeconds)
+        );
+        return result != null ? result : 0L;
     }
 
-    // Execute arbitrary Lua script for complex operations.
-    public <T> T evalLua(String script, Class<T> returnType, String[] keys, String[] args) {
-        RedisScript<T> redisScript = RedisScript.of(script, returnType);
-        return redisTemplate.execute(redisScript, keys.length == 0 ? Collections.emptyList() : java.util.Arrays.asList(keys), args);
+    /**
+     * Execute arbitrary Lua script for complex operations.
+     * Uses List for keys and Varargs for args for better flexibility.
+     */
+    public <T> T evalLua(String script, Class<T> returnType, String[] keys, Object... args) {
+        RedisScript<T> redisScript = new DefaultRedisScript<>(script, returnType);
+        List<String> keyList = Arrays.asList(keys);
+        return redisTemplate.execute(redisScript, keyList, args);
     }
 }

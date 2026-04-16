@@ -14,7 +14,6 @@ import java.util.Map;
 //   DELETE /admin/rate-limit/keys/{key}   → manually clear a limit (unblock an IP)
 @RestController
 @RequestMapping("/admin/rate-limit")
-@CrossOrigin(origins = "http://localhost:4200")
 public class RateLimitAdminController {
 
     private final Map<String, RateLimitRule> rules;

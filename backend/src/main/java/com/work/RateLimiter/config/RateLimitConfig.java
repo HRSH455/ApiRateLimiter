@@ -46,6 +46,9 @@ public class RateLimitConfig {
 
     @Bean
     public Map<String, RateLimitRule> rateLimitRules() {
+        if (routes == null) {
+        return new java.util.concurrent.ConcurrentHashMap<>(); 
+    }
         return routes.stream()
                 .collect(Collectors.toMap(
                         RouteConfig::getPath,
