@@ -1,17 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RateLimitService } from '../../services/rate-limit.service';
 import { RateLimitStats } from '../../models/rate-limit.model';
 import { StatusBadgeComponent, MethodBadgeComponent, EmptyStateComponent } from '../../shared';
-
-interface ActivityRequest {
-  time: Date;
-  method: string;
-  path: string;
-  status: number;
-  duration: number;
-}
+import { ActivityRequest, ActivityFeedService } from '../../services/activity-feed.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,10 +20,19 @@ export class DashboardComponent implements OnInit {
   activityFeed: ActivityRequest[] = [];
 
   private readonly rateLimitService = inject(RateLimitService);
+  private readonly activityFeedService = inject(ActivityFeedService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.loadStats();
+
+    this.activityFeedService.feed$.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(feed => {
+      this.activityFeed = feed;
+      this.cdr.markForCheck();
+    });
   }
 
   loadStats(): void {
@@ -40,11 +42,12 @@ export class DashboardComponent implements OnInit {
       next: (data) => {
         this.stats = data;
         this.errorMessage = '';
-        this.updateActivityFeed(data);
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.stats = null;
         this.errorMessage = 'Unable to load stats: ' + (err?.message || 'network error');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -54,50 +57,26 @@ export class DashboardComponent implements OnInit {
       next: (data) => {
         this.stats = data;
         this.errorMessage = '';
-        this.updateActivityFeed(data);
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.errorMessage = 'Unable to refresh stats: ' + (err?.message || 'network error');
+        this.cdr.markForCheck();
       }
     });
   }
 
   getBlockRate(): number {
-    if (!this.stats || this.stats.totalRequests === 0) {
-      return 0;
-    }
+    if (!this.stats || this.stats.totalRequests === 0) return 0;
     return Math.round((this.stats.blockedRequests / this.stats.totalRequests) * 100);
   }
 
-  private updateActivityFeed(stats: RateLimitStats): void {
-    // Mock activity feed - in real app, this would come from backend
-    // For now, generate some sample data based on stats
-    this.activityFeed = [
-      {
-        time: new Date(),
-        method: 'GET',
-        path: '/api/public',
-        status: 200,
-        duration: Math.floor(Math.random() * 100) + 50
-      },
-      {
-        time: new Date(Date.now() - 2000),
-        method: 'POST',
-        path: '/api/auth/login',
-        status: 429,
-        duration: Math.floor(Math.random() * 50) + 10
-      },
-      {
-        time: new Date(Date.now() - 5000),
-        method: 'GET',
-        path: '/api/search',
-        status: 200,
-        duration: Math.floor(Math.random() * 200) + 100
-      }
-    ];
+  getAllowRate(): number {
+    if (!this.stats || this.stats.totalRequests === 0) return 0;
+    return Math.round((this.stats.allowedRequests / this.stats.totalRequests) * 100);
   }
 
-  trackByRequest(index: number, item: ActivityRequest): any {
+  trackByRequest(index: number, item: ActivityRequest): number {
     return item.time.getTime();
   }
 }

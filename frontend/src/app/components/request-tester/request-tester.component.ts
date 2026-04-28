@@ -5,6 +5,7 @@ import { HttpResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RateLimitService } from '../../services/rate-limit.service';
 import { StatusBadgeComponent, MethodBadgeComponent } from '../../shared';
+import { ActivityFeedService } from "../../services/activity-feed.service";
 
 interface Endpoint {
   method: 'GET';
@@ -45,6 +46,7 @@ export class RequestTesterComponent {
 
   readonly rateLimitService = inject(RateLimitService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly activityFeedService = inject(ActivityFeedService);
 
   constructor() {
     this.selectedEndpoint = this.endpoints[0];
@@ -168,12 +170,22 @@ export class RequestTesterComponent {
     }
   }
 
+  // 2. Update addToHistory — push to feed with real data
   private addToHistory(status: number, path: string, duration: number): void {
     this.requestHistory.unshift({ status, path, duration });
     if (this.requestHistory.length > 10) {
       this.requestHistory = this.requestHistory.slice(0, 10);
     }
-  }
+
+    // Push real entry to shared feed
+    this.activityFeedService.push({
+      time: new Date(),
+      method: this.selectedEndpoint?.method ?? 'GET',
+      path,
+      status,
+      duration
+    });
+}
 
   toggleResponseBody(): void {
     this.showResponseBody = !this.showResponseBody;
