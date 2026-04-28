@@ -12,18 +12,41 @@
 <div class="tester-layout">
   <!-- Left Panel: Controls -->
   <div class="controls-panel card">
-    <div class="section-label">SELECT ENDPOINT</div>
+    <div class="section-header">
+      <div class="section-label">SELECT ENDPOINT</div>
+      <button class="btn-ghost btn-small" (click)="toggleCustomForm()">
+        {{ showCustomForm ? '✕ cancel' : '+ custom' }}
+      </button>
+    </div>
+
+    <!-- Custom endpoint form -->
+    <div *ngIf="showCustomForm" class="custom-form">
+      <input type="text"
+             class="input"
+             [(ngModel)]="customPath"
+             placeholder="e.g. /api/my-endpoint"
+             (keydown.enter)="addCustomEndpoint()">
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="customRequiresAuth">
+        Requires auth
+      </label>
+      <button class="btn-primary btn-small" (click)="addCustomEndpoint()">Add</button>
+    </div>
 
     <div class="endpoints-grid">
-      <div *ngFor="let endpoint of endpoints"
+      <div *ngFor="let endpoint of allEndpoints"
            class="endpoint-card"
            [class.selected]="selectedEndpoint === endpoint"
+           [class.custom]="endpoint.custom"
            (click)="selectEndpoint(endpoint)">
         <div class="endpoint-header">
           <app-method-badge [method]="endpoint.method"></app-method-badge>
           <span class="endpoint-path mono">{{ endpoint.path }}</span>
+          <button *ngIf="endpoint.custom"
+                  class="remove-btn"
+                  (click)="$event.stopPropagation(); removeCustomEndpoint(endpoint)">✕</button>
         </div>
-        <div class="endpoint-limit">{{ endpoint.limit }}</div>
+        <div class="endpoint-limit">{{ endpoint.requiresAuth ? '🔒 ' : '' }}{{ endpoint.limit }}</div>
       </div>
     </div>
 
