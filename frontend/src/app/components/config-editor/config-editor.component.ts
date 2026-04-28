@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
 import { RateLimitService } from '../../services/rate-limit.service';
 import { RateLimitRule, RateLimitRuleMap } from '../../models/rate-limit.model';
 import { ToggleComponent, EmptyStateComponent } from '../../shared';
@@ -33,8 +34,10 @@ export class ConfigEditorComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
+  private readonly rateLimitService = inject(RateLimitService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
-  constructor(private rateLimitService: RateLimitService) {
+  constructor() {
     this.ruleForm = this.fb.group({
       path: ['', Validators.required],
       limit: [100, [Validators.required, Validators.min(1)]],
@@ -56,9 +59,11 @@ export class ConfigEditorComponent implements OnInit {
         this.configMap = data;
         this.updateRulesDisplay();
         this.errorMessage = '';
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.errorMessage = 'Unable to load config: ' + (err?.message || 'unknown error');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -67,7 +72,7 @@ export class ConfigEditorComponent implements OnInit {
     this.rules = Object.entries(this.configMap).map(([path, rule]) => ({
       path,
       rule,
-      enabled: true // For now, assume all are enabled
+      enabled: true
     }));
   }
 
@@ -81,6 +86,7 @@ export class ConfigEditorComponent implements OnInit {
       rolloutPercent: 100
     });
     this.showModal = true;
+    this.cdr.markForCheck();
   }
 
   editRule(path: string): void {
@@ -95,12 +101,14 @@ export class ConfigEditorComponent implements OnInit {
         rolloutPercent: 100
       });
       this.showModal = true;
+      this.cdr.markForCheck();
     }
   }
 
   closeModal(): void {
     this.showModal = false;
     this.editingPath = '';
+    this.cdr.markForCheck();
   }
 
   saveRule(): void {
@@ -116,14 +124,13 @@ export class ConfigEditorComponent implements OnInit {
       const updatedConfig = { ...this.configMap };
 
       if (this.editingPath && this.editingPath !== formValue.path) {
-        // Rename: remove old, add new
         delete updatedConfig[this.editingPath];
       }
 
       updatedConfig[formValue.path] = newRule;
 
       this.rateLimitService.updateConfigMap(updatedConfig).pipe(
-        takeUntilDestroyed(this.destroyRef)
+        take(1)  // one-shot, safe to use inside methods
       ).subscribe({
         next: () => {
           this.showToast('Rule saved successfully', 'success');
@@ -143,7 +150,7 @@ export class ConfigEditorComponent implements OnInit {
       delete updatedConfig[path];
 
       this.rateLimitService.updateConfigMap(updatedConfig).pipe(
-        takeUntilDestroyed(this.destroyRef)
+        take(1)
       ).subscribe({
         next: () => {
           this.showToast('Rule deleted successfully', 'success');
@@ -157,15 +164,16 @@ export class ConfigEditorComponent implements OnInit {
   }
 
   toggleRule(path: string, enabled: boolean): void {
-    // For now, just show a toast. In a real implementation, you'd update the rule status
     this.showToast(`Rule ${enabled ? 'enabled' : 'disabled'}`, 'success');
   }
 
   private showToast(message: string, type: 'success' | 'error'): void {
     this.toastMessage = message;
     this.toastType = type;
+    this.cdr.markForCheck();
     setTimeout(() => {
       this.toastMessage = '';
+      this.cdr.markForCheck();  // needed so toast visually disappears
     }, 2500);
   }
 
@@ -183,7 +191,6 @@ export class ConfigEditorComponent implements OnInit {
   }
 
   getEnvBadge(path: string): string {
-    // Mock environment detection based on path
     if (path.includes('prod')) return 'prod';
     if (path.includes('staging')) return 'staging';
     return 'dev';

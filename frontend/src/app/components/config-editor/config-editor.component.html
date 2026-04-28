@@ -18,8 +18,7 @@
     <span class="rules-count badge">{{ rules.length }}</span>
   </div>
 
-  <div *ngIf="rules.length > 0; else noRules">
-    <table class="table">
+  <table *ngIf="rules.length > 0; else noRules" class="table">
       <thead>
         <tr>
           <th>PATH</th>
@@ -66,7 +65,7 @@
   <ng-template #noRules>
     <app-empty-state icon="📋" message="No rules configured yet"></app-empty-state>
   </ng-template>
-</div>
+
 
 <!-- Edit/Create Modal -->
 <div *ngIf="showModal" class="modal-backdrop" (click)="closeModal()">
@@ -76,7 +75,7 @@
       <button class="modal-close" (click)="closeModal()">×</button>
     </div>
 
-    <form [formGroup]="ruleForm" (ngSubmit)="saveRule()" class="modal-body">
+    <form [formGroup]="ruleForm"  class="modal-body">
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Environment</label>
@@ -127,7 +126,7 @@
 </div>
 
 <!-- Toast Notifications -->
-<div *ngIf="toastMessage" class="toast" [ngClass]="toastType">
+<div *ngIf="toastMessage" class="toast" [ngClass]="'toast-' + toastType">
   <span>{{ toastMessage }}</span>
 </div>
 

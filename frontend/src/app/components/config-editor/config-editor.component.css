@@ -240,11 +240,11 @@
 }
 
 /* Toast */
-.toast.success {
+.toast-success {
   border-left: 3px solid var(--accent-green);
 }
 
-.toast.error {
+.toast-error {
   border-left: 3px solid var(--accent-red);
 }
 
