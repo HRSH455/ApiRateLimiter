@@ -22,11 +22,9 @@
       <thead>
         <tr>
           <th>PATH</th>
-          <th>ENV</th>
           <th>LIMIT</th>
           <th>WINDOW</th>
           <th>STRATEGY</th>
-          <th>STATUS</th>
           <th>ACTIONS</th>
         </tr>
       </thead>
@@ -34,20 +32,12 @@
         <tr *ngFor="let rule of rules; trackBy: trackByPath"
             class="rule-row animate-row">
           <td class="mono">{{ rule.path }}</td>
-          <td>
-            <span class="badge env-badge env-{{ getEnvBadge(rule.path) }}">
-              {{ getEnvBadge(rule.path).toUpperCase() }}
-            </span>
-          </td>
           <td class="mono">{{ rule.rule.limit }}</td>
           <td class="mono">{{ rule.rule.windowSecs }}s</td>
           <td>
             <span class="badge strategy-badge" [ngClass]="getStrategyBadgeClass(rule.rule.strategy)">
               {{ rule.rule.strategy }}
             </span>
-          </td>
-          <td>
-            <app-toggle [enabled]="rule.enabled" (toggled)="toggleRule(rule.path, $event)"></app-toggle>
           </td>
           <td class="actions">
             <button class="action-btn" (click)="editRule(rule.path)" title="Edit">

@@ -1,31 +1,46 @@
 package com.work.RateLimiter.controller;
 
+import com.work.RateLimiter.model.RateLimitRule;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
-// Demo REST controller with endpoints that have different rate limits.
-// Used to test the rate limiting functionality.
-// Endpoints:
-//   GET /api/public  → no limit or loose limit
-//   GET /api/user    → moderate limit
-//   GET /api/admin   → strict limit
+// Dynamic demo controller — every path registered in the rate limit rules map
+// automatically gets a real handler. No more sync issues between config and endpoints.
+// Supports GET and POST on any /api/** path that has a rule.
 @RestController
-@RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:4200")
 public class DemoApiController {
 
-    @GetMapping("/public")
-    public Map<String, String> publicEndpoint() {
-        return Map.of("message", "Public endpoint, no strict limits");
+    private final Map<String, RateLimitRule> rules;
+
+    public DemoApiController(Map<String, RateLimitRule> rules) {
+        this.rules = rules;
     }
 
-    @GetMapping("/user")
-    public Map<String, String> userEndpoint() {
-        return Map.of("message", "User endpoint, moderate rate limit");
-    }
+    @RequestMapping(
+        value = "/api/**",
+        method = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE }
+    )
+    public ResponseEntity<Map<String, Object>> handleAny(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        RateLimitRule rule = rules.get(path);
 
-    @GetMapping("/admin")
-    public Map<String, String> adminEndpoint() {
-        return Map.of("message", "Admin endpoint, strict rate limit");
+        if (rule == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                "error", "No handler or rate limit rule found for: " + path,
+                "hint", "Add this path to application.properties rate-limit.routes"
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "path", path,
+            "message", "OK — endpoint is active",
+            "rateLimit", Map.of(
+                "limit", rule.limit(),
+                "windowSecs", rule.windowSecs(),
+                "strategy", rule.strategy()
+            )
+        ));
     }
 }

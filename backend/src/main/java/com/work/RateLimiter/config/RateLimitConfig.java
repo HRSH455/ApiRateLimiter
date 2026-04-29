@@ -4,8 +4,10 @@ import com.work.RateLimiter.model.RateLimitRule;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 // Binds application.yml rate limit configurations to Java objects.
@@ -45,14 +47,17 @@ public class RateLimitConfig {
     }
 
     @Bean
+    @Primary
     public Map<String, RateLimitRule> rateLimitRules() {
         if (routes == null) {
-        return new java.util.concurrent.ConcurrentHashMap<>(); 
-    }
+            return new ConcurrentHashMap<>();
+        }
         return routes.stream()
                 .collect(Collectors.toMap(
                         RouteConfig::getPath,
-                        r -> new RateLimitRule(r.getLimit(), r.getWindowSecs(), r.getStrategy(), r.getKeyPrefix())
+                        r -> new RateLimitRule(r.getLimit(), r.getWindowSecs(), r.getStrategy(), r.getKeyPrefix()),
+                        (a, b) -> b,
+                        ConcurrentHashMap::new
                 ));
     }
 }

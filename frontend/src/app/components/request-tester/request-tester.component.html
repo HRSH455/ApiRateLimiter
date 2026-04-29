@@ -6,16 +6,48 @@
     </h1>
     <p class="page-subtitle">Fire requests and watch rate limiting in action</p>
   </div>
+  <button class="btn-ghost btn-small" (click)="loadConfigEndpoints()" [disabled]="configLoading">
+    <span class="mono">↻</span> {{ configLoading ? 'Loading...' : 'Reload Config' }}
+  </button>
 </div>
 
 <!-- Main Layout -->
 <div class="tester-layout">
   <!-- Left Panel: Controls -->
   <div class="controls-panel card">
+
+    <!-- Config Endpoints Section -->
     <div class="section-header">
-      <div class="section-label">SELECT ENDPOINT</div>
+      <div class="section-label">FROM CONFIG</div>
+      <span class="rules-count badge">{{ configEndpoints.length }}</span>
+    </div>
+
+    <div *ngIf="configLoading" class="config-loading">
+      <span class="mono">Loading endpoints...</span>
+    </div>
+
+    <div *ngIf="!configLoading && configEndpoints.length === 0" class="config-empty">
+      <span class="mono">No config endpoints found. Is the backend running?</span>
+    </div>
+
+    <div class="endpoints-grid" *ngIf="!configLoading && configEndpoints.length > 0">
+      <div *ngFor="let endpoint of configEndpoints"
+           class="endpoint-card"
+           [class.selected]="selectedEndpoint === endpoint"
+           (click)="selectEndpoint(endpoint)">
+        <div class="endpoint-header">
+          <app-method-badge [method]="endpoint.method"></app-method-badge>
+          <span class="endpoint-path mono">{{ endpoint.path }}</span>
+        </div>
+        <div class="endpoint-limit">{{ endpoint.requiresAuth ? '🔒 ' : '' }}{{ endpoint.limit }}</div>
+      </div>
+    </div>
+
+    <!-- Custom Endpoints Section -->
+    <div class="section-header" style="margin-top: 16px;">
+      <div class="section-label">CUSTOM</div>
       <button class="btn-ghost btn-small" (click)="toggleCustomForm()">
-        {{ showCustomForm ? '✕ cancel' : '+ custom' }}
+        {{ showCustomForm ? '✕ cancel' : '+ add' }}
       </button>
     </div>
 
@@ -26,6 +58,9 @@
              [(ngModel)]="customPath"
              placeholder="e.g. /api/my-endpoint"
              (keydown.enter)="addCustomEndpoint()">
+      <select class="input" [(ngModel)]="customMethod">
+        <option *ngFor="let m of httpMethods" [value]="m">{{ m }}</option>
+      </select>
       <label class="checkbox-label">
         <input type="checkbox" [(ngModel)]="customRequiresAuth">
         Requires auth
@@ -33,24 +68,27 @@
       <button class="btn-primary btn-small" (click)="addCustomEndpoint()">Add</button>
     </div>
 
-    <div class="endpoints-grid">
-      <div *ngFor="let endpoint of allEndpoints"
-           class="endpoint-card"
+    <div class="endpoints-grid" *ngIf="customEndpoints.length > 0">
+      <div *ngFor="let endpoint of customEndpoints"
+           class="endpoint-card custom"
            [class.selected]="selectedEndpoint === endpoint"
-           [class.custom]="endpoint.custom"
            (click)="selectEndpoint(endpoint)">
         <div class="endpoint-header">
           <app-method-badge [method]="endpoint.method"></app-method-badge>
           <span class="endpoint-path mono">{{ endpoint.path }}</span>
-          <button *ngIf="endpoint.custom"
-                  class="remove-btn"
+          <button class="remove-btn"
                   (click)="$event.stopPropagation(); removeCustomEndpoint(endpoint)">✕</button>
         </div>
-        <div class="endpoint-limit">{{ endpoint.requiresAuth ? '🔒 ' : '' }}{{ endpoint.limit }}</div>
+        <div class="endpoint-limit">{{ endpoint.requiresAuth ? '🔒 ' : '' }}custom</div>
       </div>
     </div>
 
-    <div class="form-group">
+    <div *ngIf="!showCustomForm && customEndpoints.length === 0" class="config-empty">
+      <span class="mono">No custom endpoints added.</span>
+    </div>
+
+    <!-- User ID -->
+    <div class="form-group" style="margin-top: 16px;">
       <label class="form-label">USER ID (optional)</label>
       <input type="text"
              class="input"
@@ -58,10 +96,11 @@
              placeholder="e.g. user-123">
     </div>
 
+    <!-- Actions -->
     <div class="action-buttons">
       <button class="btn-primary full-width"
               (click)="sendRequest()"
-              [disabled]="isLoading">
+              [disabled]="isLoading || !selectedEndpoint">
         <span *ngIf="isLoading">⏳</span>
         <span *ngIf="!isLoading">🚀</span>
         SEND REQUEST
@@ -69,7 +108,7 @@
 
       <button class="btn-ghost btn-yellow full-width"
               (click)="fireRapidRequests()"
-              [disabled]="isLoading">
+              [disabled]="isLoading || !selectedEndpoint">
         🔥 FIRE 10x RAPID
       </button>
     </div>
@@ -83,11 +122,10 @@
   <div class="response-panel card">
     <div *ngIf="!response; else responseContent" class="empty-state">
       <div class="empty-icon">📡</div>
-      <div class="empty-message">Send a request to see the response</div>
+      <div class="empty-message">Select an endpoint and send a request</div>
     </div>
 
     <ng-template #responseContent>
-      <!-- Status -->
       <div class="response-status">
         <div class="status-badge-large">
           <app-status-badge [status]="response.status"></app-status-badge>
@@ -98,12 +136,10 @@
         </div>
       </div>
 
-      <!-- Rate Limited Banner -->
       <div *ngIf="isRateLimited()" class="rate-limited-banner">
         ⚠ RATE LIMITED — Retry after {{ headers['ratelimit-reset'] || 'some time' }}
       </div>
 
-      <!-- Rate Limit Headers -->
       <div class="response-section">
         <div class="section-label">RATE LIMIT HEADERS</div>
         <div class="headers-list">
@@ -111,15 +147,17 @@
             <span class="header-key">{{ header.key }}</span>
             <span class="header-value mono">{{ header.value }}</span>
           </div>
+          <div *ngIf="getRateLimitHeaders().length === 0" class="mono" style="opacity: 0.5; font-size: 12px;">
+            No rate limit headers returned
+          </div>
         </div>
       </div>
 
-      <!-- Response Body -->
       <div class="response-section">
         <div class="response-body-header">
           <span class="section-label">RESPONSE BODY</span>
           <button class="btn-ghost btn-small" (click)="toggleResponseBody()">
-            {{ showResponseBody ? '▼' : '▶' }} {{ showResponseBody ? 'collapse' : 'expand' }}
+            {{ showResponseBody ? '▼ collapse' : '▶ expand' }}
           </button>
         </div>
         <div *ngIf="showResponseBody" class="response-body">
@@ -134,7 +172,7 @@
 <div class="history-strip">
   <div *ngFor="let req of requestHistory" class="history-item" [class.error]="req.status >= 400">
     <app-status-badge [status]="req.status"></app-status-badge>
-    <span class="history-path mono">{{ req.path }}</span>
+    <span class="history-path mono">{{ req.method }} {{ req.path }}</span>
     <span class="history-duration mono">{{ req.duration }}ms</span>
   </div>
 </div>

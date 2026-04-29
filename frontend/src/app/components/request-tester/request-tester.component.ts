@@ -1,24 +1,29 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
 import { RateLimitService } from '../../services/rate-limit.service';
+import { RateLimitRuleMap } from '../../models/rate-limit.model';
 import { StatusBadgeComponent, MethodBadgeComponent } from '../../shared';
 import { ActivityFeedService } from '../../services/activity-feed.service';
 
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
 interface Endpoint {
-  method: 'GET';
+  method: HttpMethod;
   path: string;
   limit: string;
   requiresAuth?: boolean;
-  custom?: boolean;
+  fromConfig?: boolean;  // true = loaded from backend config
+  custom?: boolean;      // true = manually added by user
 }
 
 interface RequestHistory {
   status: number;
   path: string;
+  method: HttpMethod;
   duration: number;
 }
 
@@ -30,44 +35,81 @@ interface RequestHistory {
   styleUrls: ['./request-tester.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RequestTesterComponent {
+export class RequestTesterComponent implements OnInit {
   userId = '';
   selectedEndpoint: Endpoint | null = null;
   response: any = null;
   headers: { [key: string]: string } = {};
   errorMessage = '';
   isLoading = false;
+  configLoading = false;
   showResponseBody = true;
   requestHistory: RequestHistory[] = [];
 
-  // Custom endpoint fields
+  // Custom endpoint form fields
   showCustomForm = false;
   customPath = '';
+  customMethod: HttpMethod = 'GET';
   customRequiresAuth = false;
 
-  readonly endpoints: Endpoint[] = [
-    { method: 'GET', path: '/api/public',  limit: '100/min' },
-    { method: 'GET', path: '/api/user',    limit: '50/min' },
-    { method: 'GET', path: '/api/admin',   limit: '10/min', requiresAuth: true }
-  ];
+  // Endpoints loaded from backend config
+  configEndpoints: Endpoint[] = [];
 
+  // Manually added endpoints
   customEndpoints: Endpoint[] = [];
 
-  private readonly cdr              = inject(ChangeDetectorRef);
-  private readonly destroyRef       = inject(DestroyRef);
-  private readonly activityFeedService = inject(ActivityFeedService);
-  readonly rateLimitService         = inject(RateLimitService);
+  readonly httpMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE'];
 
-  constructor() {
-    this.selectedEndpoint = this.endpoints[0];
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly activityFeedService = inject(ActivityFeedService);
+  readonly rateLimitService = inject(RateLimitService);
+
+  ngOnInit(): void {
+    this.loadConfigEndpoints();
+  }
+
+  // Pull all endpoints from the rate limit config — these are guaranteed
+  // to have real handlers on the backend (DemoApiController handles /api/**)
+  loadConfigEndpoints(): void {
+    this.configLoading = true;
+    this.cdr.markForCheck();
+
+    this.rateLimitService.getConfigMap().pipe(take(1)).subscribe({
+      next: (config: RateLimitRuleMap) => {
+        this.configEndpoints = Object.entries(config).map(([path, rule]) => ({
+          method: 'GET' as HttpMethod,
+          path,
+          limit: `${rule.limit}/${rule.windowSecs}s`,
+          requiresAuth: path.includes('admin'),
+          fromConfig: true
+        }));
+
+        // Auto-select first config endpoint if nothing selected yet
+        if (!this.selectedEndpoint && this.configEndpoints.length > 0) {
+          this.selectedEndpoint = this.configEndpoints[0];
+        }
+
+        this.configLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Config load failed — fall back silently, custom endpoints still work
+        this.configLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   get allEndpoints(): Endpoint[] {
-    return [...this.endpoints, ...this.customEndpoints];
+    return [...this.configEndpoints, ...this.customEndpoints];
   }
 
   selectEndpoint(endpoint: Endpoint): void {
     this.selectedEndpoint = endpoint;
+    this.response = null;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
   }
 
   toggleCustomForm(): void {
@@ -78,26 +120,38 @@ export class RequestTesterComponent {
   addCustomEndpoint(): void {
     const path = this.customPath.trim();
     if (!path) return;
+
     const normalized = path.startsWith('/') ? path : '/' + path;
+
+    // Prevent duplicates
+    if (this.allEndpoints.some(e => e.path === normalized && e.method === this.customMethod)) {
+      this.errorMessage = `${this.customMethod} ${normalized} already exists in the list.`;
+      this.cdr.markForCheck();
+      return;
+    }
+
     const endpoint: Endpoint = {
-      method: 'GET',
+      method: this.customMethod,
       path: normalized,
       limit: 'unknown',
       requiresAuth: this.customRequiresAuth,
       custom: true
     };
+
     this.customEndpoints = [...this.customEndpoints, endpoint];
     this.selectedEndpoint = endpoint;
     this.customPath = '';
+    this.customMethod = 'GET';
     this.customRequiresAuth = false;
     this.showCustomForm = false;
+    this.errorMessage = '';
     this.cdr.markForCheck();
   }
 
   removeCustomEndpoint(endpoint: Endpoint): void {
     this.customEndpoints = this.customEndpoints.filter(e => e !== endpoint);
     if (this.selectedEndpoint === endpoint) {
-      this.selectedEndpoint = this.endpoints[0];
+      this.selectedEndpoint = this.allEndpoints[0] ?? null;
     }
     this.cdr.markForCheck();
   }
@@ -117,29 +171,27 @@ export class RequestTesterComponent {
     this.cdr.markForCheck();
 
     const startTime = Date.now();
-    const url = this.rateLimitService.withApiBase(this.selectedEndpoint.path);
-    const fullUrl = this.userId
-      ? `${url}?userId=${encodeURIComponent(this.userId)}`
-      : url;
+    const endpoint = this.selectedEndpoint;
+    const url = this.rateLimitService.withApiBase(endpoint.path);
+    const fullUrl = this.userId ? `${url}?userId=${encodeURIComponent(this.userId)}` : url;
     const httpOptions = this.buildHttpOptions();
 
-    this.rateLimitService
-      .sendGet(fullUrl, httpOptions)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res: HttpResponse<any>) => {
-          const duration = Date.now() - startTime;
-          this.handleResponse(res, duration);
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        },
-        error: (error) => {
-          const duration = Date.now() - startTime;
-          this.handleError(error, duration);
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        }
-      });
+    const request$ = endpoint.method === 'GET'
+      ? this.rateLimitService.sendGet(fullUrl, httpOptions)
+      : this.rateLimitService.sendPost(fullUrl, {}, httpOptions);
+
+    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res: HttpResponse<any>) => {
+        this.handleResponse(res, Date.now() - startTime);
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        this.handleError(error, Date.now() - startTime);
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   fireRapidRequests(): void {
@@ -151,7 +203,6 @@ export class RequestTesterComponent {
 
     let completed = 0;
     const total = 10;
-    // BUG FIX: capture snapshot before the loop — user could switch endpoints mid-fire
     const endpoint = this.selectedEndpoint;
     const httpOptions = this.buildHttpOptions();
 
@@ -159,28 +210,23 @@ export class RequestTesterComponent {
       setTimeout(() => {
         const startTime = Date.now();
         const url = this.rateLimitService.withApiBase(endpoint.path);
-        const fullUrl = this.userId
-          ? `${url}?userId=${encodeURIComponent(this.userId)}`
-          : url;
+        const fullUrl = this.userId ? `${url}?userId=${encodeURIComponent(this.userId)}` : url;
 
-        // BUG FIX: use take(1) — this is inside a method, not construction time
-        this.rateLimitService.sendGet(fullUrl, httpOptions).pipe(take(1)).subscribe({
+        const request$ = endpoint.method === 'GET'
+          ? this.rateLimitService.sendGet(fullUrl, httpOptions)
+          : this.rateLimitService.sendPost(fullUrl, {}, httpOptions);
+
+        request$.pipe(take(1)).subscribe({
           next: (res: HttpResponse<any>) => {
-            const duration = Date.now() - startTime;
-            this.addToHistory(res.status, endpoint.path, duration, endpoint);
+            this.addToHistory(res.status, endpoint.path, Date.now() - startTime, endpoint);
             completed++;
-            if (completed === total) {
-              this.isLoading = false;
-            }
+            if (completed === total) this.isLoading = false;
             this.cdr.markForCheck();
           },
           error: (error) => {
-            const duration = Date.now() - startTime;
-            this.addToHistory(error.status || 0, endpoint.path, duration, endpoint);
+            this.addToHistory(error.status || 0, endpoint.path, Date.now() - startTime, endpoint);
             completed++;
-            if (completed === total) {
-              this.isLoading = false;
-            }
+            if (completed === total) this.isLoading = false;
             this.cdr.markForCheck();
           }
         });
@@ -189,12 +235,7 @@ export class RequestTesterComponent {
   }
 
   private handleResponse(res: HttpResponse<any>, duration: number): void {
-    this.response = {
-      status: res.status,
-      statusText: res.statusText,
-      body: res.body,
-      duration
-    };
+    this.response = { status: res.status, statusText: res.statusText, body: res.body, duration };
     this.headers = {};
     res.headers.keys().forEach(key => {
       this.headers[key] = res.headers.get(key)!;
@@ -204,12 +245,7 @@ export class RequestTesterComponent {
 
   private handleError(error: any, duration: number): void {
     const status = error.status || 0;
-    this.response = {
-      status,
-      statusText: error.statusText || 'Error',
-      body: error.error,
-      duration
-    };
+    this.response = { status, statusText: error.statusText || 'Error', body: error.error, duration };
     this.headers = {};
     if (error.headers) {
       error.headers.keys().forEach((key: string) => {
@@ -221,7 +257,13 @@ export class RequestTesterComponent {
     if (status === 0) {
       this.errorMessage = 'Network error: backend unreachable or CORS blocked the request.';
     } else if (status === 401) {
-      this.errorMessage = 'Unauthorized: check admin credentials in environment.ts.';
+      this.errorMessage = this.selectedEndpoint?.requiresAuth
+        ? 'Unauthorized: check admin credentials in environment.ts.'
+        : 'Unauthorized: this endpoint requires auth. Enable "Requires Auth" when adding it.';
+    } else if (status === 404) {
+      this.errorMessage = this.selectedEndpoint?.fromConfig
+        ? `Not found: ${this.selectedEndpoint.path} has a rate limit rule but no backend handler. Check DemoApiController.`
+        : `Not found: ${this.selectedEndpoint?.path} doesn't exist on the backend.`;
     } else if (status === 429) {
       this.errorMessage = `Rate limited: too many requests to ${this.selectedEndpoint?.path}.`;
     } else {
@@ -229,17 +271,10 @@ export class RequestTesterComponent {
     }
   }
 
-  // BUG FIX: accept optional endpoint arg so fireRapidRequests can pass its snapshot
   private addToHistory(status: number, path: string, duration: number, endpoint?: Endpoint): void {
-    this.requestHistory = [{ status, path, duration }, ...this.requestHistory].slice(0, 10);
-
-    this.activityFeedService.push({
-      time: new Date(),
-      method: (endpoint ?? this.selectedEndpoint)?.method ?? 'GET',
-      path,
-      status,
-      duration
-    });
+    const method = (endpoint ?? this.selectedEndpoint)?.method ?? 'GET';
+    this.requestHistory = [{ status, path, method, duration }, ...this.requestHistory].slice(0, 10);
+    this.activityFeedService.push({ time: new Date(), method, path, status, duration });
   }
 
   toggleResponseBody(): void {

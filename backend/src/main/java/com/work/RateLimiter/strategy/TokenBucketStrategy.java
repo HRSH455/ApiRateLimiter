@@ -4,7 +4,6 @@ import com.work.RateLimiter.model.RateLimitResult;
 import com.work.RateLimiter.model.RateLimitRule;
 import com.work.RateLimiter.model.RateLimitStrategy;
 import com.work.RateLimiter.store.RedisRateLimitStore;
-import com.work.RateLimiter.util.RedisKeyBuilder;
 import java.time.Instant;
 import java.time.Duration;
 
@@ -52,9 +51,8 @@ public class TokenBucketStrategy implements RateLimitStrategy {
     public RateLimitResult evaluate(String key, RateLimitRule rule) {
         long now = Instant.now().getEpochSecond();
         double rate = (double) rule.limit() / rule.windowSecs();
-        String bucketKey = RedisKeyBuilder.buildKey(rule.keyPrefix(), "token", key);
 
-        String evaluation = store.evalLua(TOKEN_BUCKET_LUA, String.class, new String[]{bucketKey},
+        String evaluation = store.evalLua(TOKEN_BUCKET_LUA, String.class, new String[]{key},
             new Object[]{String.valueOf(now), String.valueOf(rate), String.valueOf(rule.limit()), String.valueOf(rule.windowSecs())});
 
         String[] parts = evaluation.split(",", 2);

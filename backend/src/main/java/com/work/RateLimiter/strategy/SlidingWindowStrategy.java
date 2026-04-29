@@ -4,7 +4,6 @@ import com.work.RateLimiter.model.RateLimitResult;
 import com.work.RateLimiter.model.RateLimitRule;
 import com.work.RateLimiter.model.RateLimitStrategy;
 import com.work.RateLimiter.store.RedisRateLimitStore;
-import com.work.RateLimiter.util.RedisKeyBuilder;
 import java.time.Instant;
 import java.time.Duration;
 import java.util.UUID;
@@ -45,10 +44,9 @@ public class SlidingWindowStrategy implements RateLimitStrategy {
         long nowMs = System.currentTimeMillis();
         long windowMs = rule.windowSecs() * 1000L;
         long windowStart = nowMs - windowMs;
-        String windowKey = RedisKeyBuilder.buildKey(rule.keyPrefix(), "sliding", key);
         String member = UUID.randomUUID().toString();
 
-        Long count = store.evalLua(SLIDING_WINDOW_LUA, Long.class, new String[]{windowKey}, 
+        Long count = store.evalLua(SLIDING_WINDOW_LUA, Long.class, new String[]{key}, 
             new Object[]{String.valueOf(nowMs), String.valueOf(windowStart), member, String.valueOf(rule.windowSecs()), String.valueOf(rule.limit())});
 
         boolean allowed = count < rule.limit();

@@ -5,7 +5,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
 import { RateLimitService } from '../../services/rate-limit.service';
 import { RateLimitRule, RateLimitRuleMap } from '../../models/rate-limit.model';
-import { ToggleComponent, EmptyStateComponent } from '../../shared';
+import { EmptyStateComponent } from '../../shared';
+import { environment } from '../../../environments/environment';
 
 interface RuleDisplay {
   path: string;
@@ -16,7 +17,7 @@ interface RuleDisplay {
 @Component({
   selector: 'app-config-editor',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ToggleComponent, EmptyStateComponent],
+  imports: [CommonModule, ReactiveFormsModule, EmptyStateComponent],
   templateUrl: './config-editor.component.html',
   styleUrls: ['./config-editor.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -163,10 +164,6 @@ export class ConfigEditorComponent implements OnInit {
     }
   }
 
-  toggleRule(path: string, enabled: boolean): void {
-    this.showToast(`Rule ${enabled ? 'enabled' : 'disabled'}`, 'success');
-  }
-
   private showToast(message: string, type: 'success' | 'error'): void {
     this.toastMessage = message;
     this.toastType = type;
@@ -191,8 +188,6 @@ export class ConfigEditorComponent implements OnInit {
   }
 
   getEnvBadge(path: string): string {
-    if (path.includes('prod')) return 'prod';
-    if (path.includes('staging')) return 'staging';
-    return 'dev';
+    return environment.production ? 'prod' : 'dev';
   }
 }

@@ -45,7 +45,7 @@
 </ng-template>
 
 <!-- Block Rate Bar -->
-<div class="card block-rate-card" *ngIf="stats">
+<div class="card block-rate-card" *ngIf="stats && stats.totalRequests > 0">
   <div class="block-rate-header">
     <span class="section-label">BLOCK RATE</span>
     <span class="block-rate-percentage mono">

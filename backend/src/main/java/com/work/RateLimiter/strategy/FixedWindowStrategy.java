@@ -4,7 +4,6 @@ import com.work.RateLimiter.model.RateLimitResult;
 import com.work.RateLimiter.model.RateLimitRule;
 import com.work.RateLimiter.model.RateLimitStrategy;
 import com.work.RateLimiter.store.RedisRateLimitStore;
-import com.work.RateLimiter.util.RedisKeyBuilder;
 import java.time.Instant;
 import java.time.Duration;
 
@@ -25,8 +24,7 @@ public class FixedWindowStrategy implements RateLimitStrategy {
     public RateLimitResult evaluate(String key, RateLimitRule rule) {
         long now = Instant.now().getEpochSecond();
         long windowStart = (now / rule.windowSecs()) * rule.windowSecs();
-        String windowKey = RedisKeyBuilder.buildKey(rule.keyPrefix(), "fixed", key + ":" + windowStart);
-
+        String windowKey = key + ":" + windowStart;
         long count = store.incrementAndExpire(windowKey, rule.windowSecs());
         boolean allowed = count <= rule.limit();
         int remaining = allowed ? rule.limit() - (int) count : 0;

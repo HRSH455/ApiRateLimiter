@@ -6,6 +6,7 @@ import com.work.RateLimiter.resolver.ClientIdentityResolver;
 import com.work.RateLimiter.service.RateLimitService;
 import com.work.RateLimiter.service.RateLimitStatsService;
 import com.work.RateLimiter.util.RateLimitHeaderWriter;
+import com.work.RateLimiter.util.RedisKeyBuilder;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -67,7 +68,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         RateLimitResult result;
         try {
-            result = service.checkRateLimit(rule.keyPrefix() + ":" + identity, rule);
+            result = service.checkRateLimit(RedisKeyBuilder.buildKey(rule.keyPrefix(), rule.strategy(), identity), rule);
         } catch (Exception e) {
             // Redis down, fail open
             log.warn("Rate limit check failed (fail-open). Allowing request. reason={}", e.getMessage());
