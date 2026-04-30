@@ -182,3 +182,31 @@
   <span class="error-icon">⚠</span>
   <span>{{ errorMessage }}</span>
 </div>
+
+<!-- Inline auth prompt — only shown when hitting a protected endpoint unauthenticated -->
+<div *ngIf="showAuthPrompt" class="modal-backdrop" (click)="showAuthPrompt = false">
+  <div class="modal show" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Admin credentials required</h2>
+      <button class="modal-close" (click)="showAuthPrompt = false">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-label">
+        This endpoint requires admin auth. Enter credentials to continue.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" class="input" [(ngModel)]="authUsername">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="input" [(ngModel)]="authPassword">
+      </div>
+      <div *ngIf="authError" class="error-banner">{{ authError }}</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" (click)="showAuthPrompt = false">Cancel</button>
+      <button class="btn-primary" (click)="submitAuth()">Authenticate</button>
+    </div>
+  </div>
+</div>

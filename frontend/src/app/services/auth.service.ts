@@ -14,10 +14,8 @@ export class AuthService {
     const encoded = btoa(`${username}:${password}`);
     const headers = new HttpHeaders({ 'Authorization': `Basic ${encoded}` });
 
-    // Validate credentials by hitting a real admin endpoint
     return this.http.get(`${this.BASE_URL}/admin/rate-limit/config`, { headers }).pipe(
       tap(() => {
-        // Credentials are good — store them
         this.credentials = encoded;
       }),
       catchError((error) => {
@@ -30,9 +28,18 @@ export class AuthService {
     );
   }
 
-  logout(): void {
+  // Called from inline auth modal in request tester
+  setCredentials(username: string, password: string): void {
+    this.credentials = btoa(`${username}:${password}`);
+  }
+
+  clearCredentials(): void {
     this.credentials = null;
   }
+
+  // logout(): void {
+  //   this.credentials = null;
+  // }
 
   isLoggedIn(): boolean {
     return this.credentials !== null;

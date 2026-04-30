@@ -8,6 +8,7 @@ import { RateLimitService } from '../../services/rate-limit.service';
 import { RateLimitRuleMap } from '../../models/rate-limit.model';
 import { StatusBadgeComponent, MethodBadgeComponent } from '../../shared';
 import { ActivityFeedService } from '../../services/activity-feed.service';
+import { AuthService } from '../../services/auth.service';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
@@ -58,12 +59,20 @@ export class RequestTesterComponent implements OnInit {
   // Manually added endpoints
   customEndpoints: Endpoint[] = [];
 
+  // Auth prompt fields
+  showAuthPrompt = false;
+  authUsername = '';
+  authPassword = '';
+  authError = '';
+
   readonly httpMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE'];
 
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly activityFeedService = inject(ActivityFeedService);
   readonly rateLimitService = inject(RateLimitService);
+  readonly authService = inject(AuthService);
+
 
   ngOnInit(): void {
     this.loadConfigEndpoints();
@@ -158,7 +167,7 @@ export class RequestTesterComponent implements OnInit {
 
   private buildHttpOptions(): object {
     if (this.selectedEndpoint?.requiresAuth) {
-      return this.rateLimitService.getAdminHeaders();
+      return { headers: this.authService.getAuthHeaders() };
     }
     return {};
   }
@@ -166,6 +175,13 @@ export class RequestTesterComponent implements OnInit {
   sendRequest(): void {
     if (!this.selectedEndpoint) return;
 
+    // Only check auth if this endpoint needs it
+  if (this.selectedEndpoint.requiresAuth && !this.authService.isLoggedIn()) {
+    this.showAuthPrompt = true;  // show inline login modal
+    this.cdr.markForCheck();
+    return;
+  }
+  
     this.isLoading = true;
     this.errorMessage = '';
     this.cdr.markForCheck();
@@ -193,6 +209,28 @@ export class RequestTesterComponent implements OnInit {
       }
     });
   }
+
+  submitAuth(): void {
+  this.authService.setCredentials(this.authUsername, this.authPassword);
+
+  // Verify credentials actually work before proceeding
+  this.rateLimitService.sendGet(
+    this.rateLimitService.withApiBase('/admin/rate-limit/stats'),
+    this.rateLimitService.getAdminHeaders()
+  ).pipe(take(1)).subscribe({
+    next: () => {
+      this.showAuthPrompt = false;
+      this.authError = '';
+      this.sendRequest(); // retry the original request
+      this.cdr.markForCheck();
+    },
+    error: () => {
+      this.authError = 'Invalid credentials. Try again.';
+      this.authService.clearCredentials();
+      this.cdr.markForCheck();
+    }
+  });
+}
 
   fireRapidRequests(): void {
     if (!this.selectedEndpoint) return;
