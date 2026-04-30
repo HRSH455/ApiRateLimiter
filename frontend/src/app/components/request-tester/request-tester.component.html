@@ -96,19 +96,38 @@
              placeholder="e.g. user-123">
     </div>
 
+    <!-- ✅ ADDED: Auth status banner — shown when selected endpoint needs auth -->
+    <div *ngIf="selectedEndpoint?.requiresAuth && !authService.isLoggedIn()"
+         class="auth-warning-banner">
+      <span>🔒 Admin credentials required for this endpoint</span>
+      <button class="btn-ghost btn-small" (click)="showAuthPrompt = true; cdr.markForCheck()">
+        Login
+      </button>
+    </div>
+
+    <div *ngIf="selectedEndpoint?.requiresAuth && authService.isLoggedIn()"
+         class="auth-ok-banner">
+      <span>✓ Authenticated as admin</span>
+      <button class="btn-ghost btn-small" (click)="authService.clearCredentials(); cdr.markForCheck()">
+        Logout
+      </button>
+    </div>
+
     <!-- Actions -->
     <div class="action-buttons">
+      <!-- ✅ CHANGED: also disable when auth is missing for protected endpoint -->
       <button class="btn-primary full-width"
               (click)="sendRequest()"
-              [disabled]="isLoading || !selectedEndpoint">
+              [disabled]="isLoading || !selectedEndpoint || (selectedEndpoint.requiresAuth && !authService.isLoggedIn())">
         <span *ngIf="isLoading">⏳</span>
         <span *ngIf="!isLoading">🚀</span>
         SEND REQUEST
       </button>
 
+      <!-- ✅ CHANGED: same disable logic for rapid fire -->
       <button class="btn-ghost btn-yellow full-width"
               (click)="fireRapidRequests()"
-              [disabled]="isLoading || !selectedEndpoint">
+              [disabled]="isLoading || !selectedEndpoint || (selectedEndpoint.requiresAuth && !authService.isLoggedIn())">
         🔥 FIRE 10x RAPID
       </button>
     </div>
@@ -183,12 +202,12 @@
   <span>{{ errorMessage }}</span>
 </div>
 
-<!-- Inline auth prompt — only shown when hitting a protected endpoint unauthenticated -->
-<div *ngIf="showAuthPrompt" class="modal-backdrop" (click)="showAuthPrompt = false">
+<!-- Inline auth modal -->
+<div *ngIf="showAuthPrompt" class="modal-backdrop" (click)="showAuthPrompt = false; cdr.markForCheck()">
   <div class="modal show" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2 class="modal-title">Admin credentials required</h2>
-      <button class="modal-close" (click)="showAuthPrompt = false">×</button>
+      <button class="modal-close" (click)="showAuthPrompt = false; cdr.markForCheck()">×</button>
     </div>
     <div class="modal-body">
       <p class="form-label">
@@ -196,16 +215,18 @@
       </p>
       <div class="form-group">
         <label class="form-label">Username</label>
-        <input type="text" class="input" [(ngModel)]="authUsername">
+        <input type="text" class="input" [(ngModel)]="authUsername"
+               (keydown.enter)="submitAuth()">
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" class="input" [(ngModel)]="authPassword">
+        <input type="password" class="input" [(ngModel)]="authPassword"
+               (keydown.enter)="submitAuth()">
       </div>
       <div *ngIf="authError" class="error-banner">{{ authError }}</div>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" (click)="showAuthPrompt = false">Cancel</button>
+      <button class="btn-ghost" (click)="showAuthPrompt = false; cdr.markForCheck()">Cancel</button>
       <button class="btn-primary" (click)="submitAuth()">Authenticate</button>
     </div>
   </div>

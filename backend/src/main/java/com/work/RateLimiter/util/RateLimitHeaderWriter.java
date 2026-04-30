@@ -9,6 +9,6 @@ public class RateLimitHeaderWriter {
     public static void writeHeaders(HttpServletResponse response, RateLimitResult result) {
         response.setHeader("RateLimit-Limit", String.valueOf(result.limit()));
         response.setHeader("RateLimit-Remaining", String.valueOf(result.remaining()));
-        response.setHeader("RateLimit-Reset", String.valueOf(result.resetAt().getEpochSecond()));
+        response.setHeader("RateLimit-Reset", result.resetAt().toString());
     }
 }

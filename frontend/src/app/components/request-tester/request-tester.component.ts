@@ -17,8 +17,8 @@ interface Endpoint {
   path: string;
   limit: string;
   requiresAuth?: boolean;
-  fromConfig?: boolean;  // true = loaded from backend config
-  custom?: boolean;      // true = manually added by user
+  fromConfig?: boolean;
+  custom?: boolean;
 }
 
 interface RequestHistory {
@@ -47,19 +47,14 @@ export class RequestTesterComponent implements OnInit {
   showResponseBody = true;
   requestHistory: RequestHistory[] = [];
 
-  // Custom endpoint form fields
   showCustomForm = false;
   customPath = '';
   customMethod: HttpMethod = 'GET';
   customRequiresAuth = false;
 
-  // Endpoints loaded from backend config
   configEndpoints: Endpoint[] = [];
-
-  // Manually added endpoints
   customEndpoints: Endpoint[] = [];
 
-  // Auth prompt fields
   showAuthPrompt = false;
   authUsername = '';
   authPassword = '';
@@ -67,19 +62,16 @@ export class RequestTesterComponent implements OnInit {
 
   readonly httpMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE'];
 
-  private readonly cdr = inject(ChangeDetectorRef);
+  readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly activityFeedService = inject(ActivityFeedService);
   readonly rateLimitService = inject(RateLimitService);
   readonly authService = inject(AuthService);
 
-
   ngOnInit(): void {
     this.loadConfigEndpoints();
   }
 
-  // Pull all endpoints from the rate limit config — these are guaranteed
-  // to have real handlers on the backend (DemoApiController handles /api/**)
   loadConfigEndpoints(): void {
     this.configLoading = true;
     this.cdr.markForCheck();
@@ -94,7 +86,6 @@ export class RequestTesterComponent implements OnInit {
           fromConfig: true
         }));
 
-        // Auto-select first config endpoint if nothing selected yet
         if (!this.selectedEndpoint && this.configEndpoints.length > 0) {
           this.selectedEndpoint = this.configEndpoints[0];
         }
@@ -103,7 +94,6 @@ export class RequestTesterComponent implements OnInit {
         this.cdr.markForCheck();
       },
       error: () => {
-        // Config load failed — fall back silently, custom endpoints still work
         this.configLoading = false;
         this.cdr.markForCheck();
       }
@@ -132,7 +122,6 @@ export class RequestTesterComponent implements OnInit {
 
     const normalized = path.startsWith('/') ? path : '/' + path;
 
-    // Prevent duplicates
     if (this.allEndpoints.some(e => e.path === normalized && e.method === this.customMethod)) {
       this.errorMessage = `${this.customMethod} ${normalized} already exists in the list.`;
       this.cdr.markForCheck();
@@ -172,16 +161,25 @@ export class RequestTesterComponent implements OnInit {
     return {};
   }
 
+  private buildHeadersMap(httpHeaders: any): { [key: string]: string } {
+    const map: { [key: string]: string } = {};
+    if (httpHeaders?.keys) {
+      httpHeaders.keys().forEach((key: string) => {
+        map[key] = httpHeaders.get(key)!;
+      });
+    }
+    return map;
+  }
+
   sendRequest(): void {
     if (!this.selectedEndpoint) return;
 
-    // Only check auth if this endpoint needs it
-  if (this.selectedEndpoint.requiresAuth && !this.authService.isLoggedIn()) {
-    this.showAuthPrompt = true;  // show inline login modal
-    this.cdr.markForCheck();
-    return;
-  }
-  
+    if (this.selectedEndpoint.requiresAuth && !this.authService.isLoggedIn()) {
+      this.showAuthPrompt = true;
+      this.cdr.markForCheck();
+      return;
+    }
+
     this.isLoading = true;
     this.errorMessage = '';
     this.cdr.markForCheck();
@@ -211,29 +209,36 @@ export class RequestTesterComponent implements OnInit {
   }
 
   submitAuth(): void {
-  this.authService.setCredentials(this.authUsername, this.authPassword);
+    this.authService.setCredentials(this.authUsername, this.authPassword);
 
-  // Verify credentials actually work before proceeding
-  this.rateLimitService.sendGet(
-    this.rateLimitService.withApiBase('/admin/rate-limit/stats'),
-    this.rateLimitService.getAdminHeaders()
-  ).pipe(take(1)).subscribe({
-    next: () => {
-      this.showAuthPrompt = false;
-      this.authError = '';
-      this.sendRequest(); // retry the original request
-      this.cdr.markForCheck();
-    },
-    error: () => {
-      this.authError = 'Invalid credentials. Try again.';
-      this.authService.clearCredentials();
-      this.cdr.markForCheck();
-    }
-  });
-}
+    this.rateLimitService.sendGet(
+      this.rateLimitService.withApiBase('/admin/rate-limit/stats'),
+      { headers: this.authService.getAuthHeaders() }
+    ).pipe(take(1)).subscribe({
+      next: () => {
+        this.showAuthPrompt = false;
+        this.authError = '';
+        this.authUsername = '';
+        this.authPassword = '';
+        this.sendRequest();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.authError = 'Invalid credentials. Try again.';
+        this.authService.clearCredentials();
+        this.cdr.markForCheck();
+      }
+    });
+  }
 
   fireRapidRequests(): void {
     if (!this.selectedEndpoint) return;
+
+    if (this.selectedEndpoint.requiresAuth && !this.authService.isLoggedIn()) {
+      this.showAuthPrompt = true;
+      this.cdr.markForCheck();
+      return;
+    }
 
     this.isLoading = true;
     this.errorMessage = '';
@@ -256,15 +261,32 @@ export class RequestTesterComponent implements OnInit {
 
         request$.pipe(take(1)).subscribe({
           next: (res: HttpResponse<any>) => {
-            this.addToHistory(res.status, endpoint.path, Date.now() - startTime, endpoint);
+            const duration = Date.now() - startTime;
+
+            // new object references — OnPush safe
+            this.response = { status: res.status, statusText: res.statusText, body: res.body, duration };
+            this.headers = this.buildHeadersMap(res.headers);
+
+            this.addToHistory(res.status, endpoint.path, duration, endpoint);
             completed++;
             if (completed === total) this.isLoading = false;
             this.cdr.markForCheck();
           },
           error: (error) => {
-            this.addToHistory(error.status || 0, endpoint.path, Date.now() - startTime, endpoint);
+            const duration = Date.now() - startTime;
+
+            // new object references — OnPush safe
+            this.response = { status: error.status || 0, statusText: error.statusText || 'Error', body: error.error, duration };
+            this.headers = this.buildHeadersMap(error.headers);
+
+            this.addToHistory(error.status || 0, endpoint.path, duration, endpoint);
             completed++;
-            if (completed === total) this.isLoading = false;
+            if (completed === total) {
+              this.isLoading = false;
+              if (error.status === 429) {
+                this.errorMessage = `Rate limited: too many requests to ${endpoint.path}.`;
+              }
+            }
             this.cdr.markForCheck();
           }
         });
@@ -274,22 +296,15 @@ export class RequestTesterComponent implements OnInit {
 
   private handleResponse(res: HttpResponse<any>, duration: number): void {
     this.response = { status: res.status, statusText: res.statusText, body: res.body, duration };
-    this.headers = {};
-    res.headers.keys().forEach(key => {
-      this.headers[key] = res.headers.get(key)!;
-    });
+    this.headers = this.buildHeadersMap(res.headers);
     this.addToHistory(res.status, this.selectedEndpoint!.path, duration);
+    this.cdr.markForCheck();
   }
 
   private handleError(error: any, duration: number): void {
     const status = error.status || 0;
     this.response = { status, statusText: error.statusText || 'Error', body: error.error, duration };
-    this.headers = {};
-    if (error.headers) {
-      error.headers.keys().forEach((key: string) => {
-        this.headers[key] = error.headers.get(key);
-      });
-    }
+    this.headers = this.buildHeadersMap(error.headers);
     this.addToHistory(status, this.selectedEndpoint!.path, duration);
 
     if (status === 0) {
@@ -307,6 +322,8 @@ export class RequestTesterComponent implements OnInit {
     } else {
       this.errorMessage = `Error ${status}: ${error.message || error.statusText || 'unknown error'}`;
     }
+
+    this.cdr.markForCheck();
   }
 
   private addToHistory(status: number, path: string, duration: number, endpoint?: Endpoint): void {

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
@@ -17,7 +17,7 @@ export class LoginComponent {
   error = '';
   loading = false;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router , private route: ActivatedRoute) {}
 
   onLogin() {
     if (!this.username || !this.password) {
@@ -29,7 +29,10 @@ export class LoginComponent {
     this.error = '';
 
     this.auth.login(this.username, this.password).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: () =>{
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || 'config';
+        this.router.navigate([`/${returnUrl}`]);
+      },
       error: (err) => {
         this.error = err.message;
         this.loading = false;
