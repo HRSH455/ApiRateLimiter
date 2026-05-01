@@ -28,11 +28,11 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     
-    @Value("${admin.username:admin}")
+    @Value("${admin.username}")
     private String adminUsername;
 
     //default password is "admin123" but should be overridden
-    @Value("${admin.password:admin123}")
+    @Value("${admin.password}")
     private String adminPassword;
 
     @Bean
