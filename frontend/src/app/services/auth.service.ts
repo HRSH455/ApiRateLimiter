@@ -37,9 +37,6 @@ export class AuthService {
     this.credentials = null;
   }
 
-  // logout(): void {
-  //   this.credentials = null;
-  // }
 
   isLoggedIn(): boolean {
     return this.credentials !== null;

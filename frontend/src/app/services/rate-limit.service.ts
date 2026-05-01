@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams, HttpResponse } from '@angular/comm
 import { Observable, interval, startWith, switchMap } from 'rxjs';
 import { RateLimitRule, RateLimitRuleMap, RateLimitStats } from '../models/rate-limit.model';
 import { environment } from '../../environments/environment';
+import { AuthService } from './auth.service';
 
 type HttpRequestOptions = {
   headers?: HttpHeaders | { [header: string]: string | string[] };
@@ -21,15 +22,10 @@ type HttpRequestOptions = {
 export class RateLimitService {
   private baseUrl = `${environment.apiUrl}/admin/rate-limit`;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient ,private auth:AuthService) { }
 
   private adminHeaders(): { headers: HttpHeaders } {
-    const credentials = btoa(`${environment.adminUserName}:${environment.adminPassword}`);
-    return {
-      headers: new HttpHeaders({
-        'Authorization': `Basic ${credentials}`
-      })
-    };
+    return {headers: this.auth.getAuthHeaders()};
   }
 
   // Expose admin headers for request tester
@@ -65,7 +61,7 @@ export class RateLimitService {
     return this.http.get<{ status: string }>(`${environment.apiUrl}/actuator/health`);
   }
 
-  // Request tester helpers
+  
   sendGet<T = any>(url: string, options: HttpRequestOptions = {}): Observable<HttpResponse<T>> {
     return this.http.get<T>(url, { ...options ,observe: 'response' as const});
   }
