@@ -1,13 +1,22 @@
-<div class="app-shell">
-  <!-- Sidebar -->
+<!-- Warm-up Splash -->
+<div class="splash-screen" *ngIf="!isBackendReady">
+  <div class="splash-content">
+    <span class="splash-icon">⬡</span>
+    <h2 class="splash-title">RateLimiter</h2>
+    <p class="splash-msg">Warming up the server, hang tight...</p>
+    <p class="splash-submsg">⚡ Hosted on Render's free tier — first load takes ~15-30s</p>
+    <div class="splash-spinner"></div>
+    <span class="splash-timer">{{ waitSeconds }}s elapsed</span>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div class="app-shell" *ngIf="isBackendReady">
   <aside class="sidebar">
-    <!-- Logo -->
     <div class="logo">
       <span class="logo-icon">⬡</span>
       <span class="logo-text">RateLimiter</span>
     </div>
-
-    <!-- Navigation -->
     <nav class="nav">
       <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">
         <span class="nav-icon">📊</span>
@@ -22,8 +31,6 @@
         <span class="nav-label">Tester</span>
       </a>
     </nav>
-
-    <!-- Bottom Section -->
     <div class="sidebar-bottom">
       <div class="env-badge">
         <span class="status-dot enabled"></span>
@@ -35,8 +42,6 @@
       </div>
     </div>
   </aside>
-
-  <!-- Main Content -->
   <main class="main-content">
     <router-outlet></router-outlet>
   </main>
