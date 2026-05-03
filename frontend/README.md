@@ -1,6 +1,25 @@
-# ApiRateLimiter
+# API Rate Limiter Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.2.
+Angular frontend for the API Rate Limiter application. This dashboard provides a user-friendly interface to manage and monitor rate limiting configurations.
+
+## Live Demo
+
+🚀 **Live Application**: [https://api-rate-limiter-avdw.vercel.app](https://api-rate-limiter-avdw.vercel.app)
+
+## Features
+
+- **Dashboard**: Overview of rate limiting status and metrics
+- **Configuration Editor**: Update rate limiting rules dynamically
+- **Request Tester**: Test API endpoints with rate limiting
+- **Real-time Monitoring**: Live updates of rate limit counters
+
+## Technology Stack
+
+- **Framework**: Angular 21+
+- **Language**: TypeScript
+- **Build Tool**: Angular CLI
+- **Testing**: Vitest
+- **Styling**: CSS3
 
 ## Development server
 
@@ -54,6 +73,4 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
-## Additional Resources
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

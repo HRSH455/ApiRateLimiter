@@ -12,17 +12,23 @@ The API Rate Limiter is a full-stack application that implements various rate li
 - **Admin Dashboard**: Web-based interface to manage and monitor rate limits
 - **Request Testing**: Built-in tools to test rate limiting behavior
 
+## Live Demo
+
+🚀 **Frontend Dashboard**: [https://api-rate-limiter-avdw.vercel.app](https://api-rate-limiter-avdw.vercel.app)
+
+🔧 **Backend API**: [https://apiratelimiter-id8y.onrender.com](https://apiratelimiter-id8y.onrender.com)
+
 ## Technology Stack
 
 ### Backend
-- **Framework**: Spring Boot 3.x
+- **Framework**: Spring Boot 3.2.4
 - **Language**: Java 17+
 - **Cache**: Redis
 - **Build Tool**: Maven
 - **Testing**: JUnit 5, Mockito
 
 ### Frontend
-- **Framework**: Angular 17+
+- **Framework**: Angular 21+
 - **Language**: TypeScript
 - **Build Tool**: npm/Angular CLI
 - **UI Components**: HTML5, CSS3
@@ -261,7 +267,6 @@ The application follows a layered architecture:
 
 ## Future Enhancements
 
-- [ ] Add authentication/authorization
 - [ ] Implement rate limit quota analytics
 - [ ] Support for webhook notifications
 - [ ] Integration with API gateway

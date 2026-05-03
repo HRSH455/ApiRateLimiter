@@ -9,8 +9,7 @@ This document outlines the development workflow, architecture patterns, and oper
 3. [Rate Limiting Flow](#rate-limiting-flow)
 4. [Configuration Management](#configuration-management)
 5. [Deployment Workflow](#deployment-workflow)
-6. [Testing Strategy](#testing-strategy)
-7. [Troubleshooting Guide](#troubleshooting-guide)
+6. [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Development Workflow
 
@@ -309,6 +308,13 @@ To test configuration changes without restart:
 
 ## Deployment Workflow
 
+### Live Deployment
+
+The application is deployed and available at:
+
+- **Frontend**: [https://api-rate-limiter-avdw.vercel.app](https://api-rate-limiter-avdw.vercel.app) (Vercel)
+- **Backend**: [https://apiratelimiter-id8y.onrender.com](https://apiratelimiter-id8y.onrender.com) (Render)
+
 ### Docker Deployment
 
 ```bash
@@ -347,54 +353,6 @@ docker-compose up --build
    - Set environment variables for sensitive config
    - Implement authentication for admin endpoints
    - Rate limit the rate limit API itself
-
-## Testing Strategy
-
-### Backend Testing
-
-```bash
-# Run all tests
-./mvnw test
-
-# Run specific test class
-./mvnw test -Dtest=RateLimitServiceTest
-
-# Run with coverage
-./mvnw test jacoco:report
-```
-
-**Test Coverage Areas:**
-- Strategy implementations (Fixed, Sliding, Token)
-- Service business logic
-- Controller endpoints
-- Exception handling
-- Redis store operations
-
-### Frontend Testing
-
-```bash
-# Run unit tests
-npm test
-
-# Run with coverage
-npm test -- --code-coverage
-
-# Run e2e tests (if configured)
-npm run e2e
-```
-
-**Test Coverage Areas:**
-- Component logic and rendering
-- Service API calls
-- User interactions
-- Form validation
-
-### Integration Testing
-
-1. Use Request Tester component to verify end-to-end flow
-2. Test rate limit enforcement across strategies
-3. Verify configuration hot-reload
-4. Test Redis persistence
 
 ## Troubleshooting Guide
 
