@@ -1,273 +1,166 @@
-# API Rate Limiter
+# 🚦 API Rate Limiter
 
-A comprehensive rate limiting solution with a Spring Boot backend and Angular frontend. This project provides multiple rate limiting strategies to control API access and prevent abuse.
+A full-stack rate limiting system built with Spring Boot and Angular. Implements three distinct rate limiting algorithms with a Redis-backed distributed state store, a live admin dashboard, and Docker Compose orchestration for the full stack.
 
-## Project Overview
+> Built because most rate limiting tutorials stop at theory. This one runs.
 
-The API Rate Limiter is a full-stack application that implements various rate limiting strategies to protect APIs from excessive requests. It includes:
+## 🌐 Live Demo
+| Layer | URL |
+|-------|-----|
+| Frontend Dashboard | https://api-rate-limiter-avdw.vercel.app |
+| Backend API | https://apiratelimiter-id8y.onrender.com |
 
-- **Multiple Rate Limiting Strategies**: Fixed window, sliding window, and token bucket algorithms
-- **Dynamic Configuration**: Update rate limiting rules without restarting the service
-- **Redis Backend**: Distributed caching for rate limit state management
-- **Admin Dashboard**: Web-based interface to manage and monitor rate limits
-- **Request Testing**: Built-in tools to test rate limiting behavior
+---
 
-## Live Demo
+## 🧠 Rate Limiting Strategies
 
-🚀 **Frontend Dashboard**: [https://api-rate-limiter-avdw.vercel.app](https://api-rate-limiter-avdw.vercel.app)
+This is the core of the project. Three algorithms, each with different trade-offs:
 
-🔧 **Backend API**: [https://apiratelimiter-id8y.onrender.com](https://apiratelimiter-id8y.onrender.com)
+### Fixed Window
+Counts requests in fixed time buckets (e.g. 5 requests per 15 minutes). Simple and cheap to compute, but vulnerable to burst traffic at window boundaries — a client can fire requests at the end of one window and the start of the next, effectively doubling their quota.
 
-## Technology Stack
+### Sliding Window
+Tracks request timestamps and counts only those within a rolling time range. Smoother than fixed window — no boundary bursts — but slightly more expensive in Redis due to sorted set operations.
 
-### Backend
-- **Framework**: Spring Boot 3.2.4
-- **Language**: Java 17+
-- **Cache**: Redis
-- **Build Tool**: Maven
-- **Testing**: JUnit 5, Mockito
+### Token Bucket
+Clients get a bucket of tokens that refills at a fixed rate. Each request consumes a token. Allows short bursts (up to bucket size) while enforcing a long-term average rate. Best for APIs where occasional spikes are acceptable.
 
-### Frontend
-- **Framework**: Angular 21+
-- **Language**: TypeScript
-- **Build Tool**: npm/Angular CLI
-- **UI Components**: HTML5, CSS3
+All three are implemented as interchangeable strategies via a common interface — adding a new algorithm means implementing one class, nothing else changes.
 
-### Infrastructure
-- **Containerization**: Docker & Docker Compose
-- **Cache Server**: Redis 7-alpine
+---
 
-## Project Structure
+## ✨ Features
+
+- Three rate limiting algorithms: Fixed Window, Sliding Window, Token Bucket
+- Per-route configuration — different limits and strategies per endpoint
+- Redis-backed distributed state — works correctly across multiple backend instances
+- Dynamic config updates — change limits at runtime without restarting
+- Admin dashboard — monitor request counts, remaining quotas, and active routes
+- Built-in request tester — fire test requests from the UI and watch limits apply
+- Docker Compose — spins up Redis + backend + frontend in one command
+- In-memory fallback — runs without Redis for local development
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | Spring Boot 3.2.4, Java 17 |
+| Frontend | Angular 21, TypeScript |
+| Cache | Redis 7 (distributed state) |
+| Containerisation | Docker, Docker Compose |
+| Testing | JUnit 5, Mockito |
+| Deployment | Vercel (frontend), Render (backend) |
+
+---
+
+## 🏗 Architecture
+
+```
+Request → Filter Layer → Strategy (Fixed / Sliding / Token)
+                              ↓
+                         Redis Store (or in-memory fallback)
+                              ↓
+                    Allow / Reject with headers
+```
+
+The filter intercepts every incoming request before it reaches the controller. It resolves the client key (IP, user ID, API key — configurable), looks up the matching route config, delegates to the appropriate strategy, and either passes the request through or returns a `429 Too Many Requests` with `Retry-After` headers.
+
+---
+
+## 🗂 Project Structure
 
 ```
 ApiRateLimiter/
-├── backend/                    # Spring Boot application
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   │   └── com/work/RateLimiter/
-│   │   │   │       ├── config/         # Configuration classes
-│   │   │   │       ├── controller/     # REST endpoints
-│   │   │   │       ├── exception/      # Custom exceptions
-│   │   │   │       ├── filter/         # Request filters
-│   │   │   │       ├── model/          # Data models
-│   │   │   │       ├── resolver/       # Custom resolvers
-│   │   │   │       ├── service/        # Business logic
-│   │   │   │       ├── store/          # Storage layer
-│   │   │   │       ├── strategy/       # Rate limiting strategies
-│   │   │   │       └── util/           # Utility classes
-│   │   │   └── resources/
-│   │   │       └── application.properties
-│   │   └── test/                       # Unit tests
-│   ├── pom.xml                         # Maven configuration
-│   ├── Dockerfile
-│   └── mvnw / mvnw.cmd                 # Maven wrapper
+├── backend/
+│   └── src/main/java/com/work/RateLimiter/
+│       ├── config/       # Route and Redis config
+│       ├── controller/   # REST endpoints
+│       ├── filter/       # Request interception
+│       ├── strategy/     # Fixed / Sliding / Token implementations
+│       ├── store/        # Redis + in-memory storage layer
+│       └── service/      # Business logic
 │
-├── frontend/                   # Angular application
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── components/             # Reusable components
-│   │   │   │   ├── dashboard/
-│   │   │   │   ├── config-editor/
-│   │   │   │   └── request-tester/
-│   │   │   ├── models/                 # TypeScript interfaces
-│   │   │   ├── services/               # API services
-│   │   │   └── app.routes.ts           # Route definitions
-│   │   ├── index.html
-│   │   ├── main.ts
-│   │   └── styles.css
-│   ├── angular.json                    # Angular CLI config
-│   ├── package.json                    # Dependencies
-│   ├── tsconfig.json                   # TypeScript config
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── README.md
+├── frontend/
+│   └── src/app/
+│       ├── components/
+│       │   ├── dashboard/        # Live metrics view
+│       │   ├── config-editor/    # Runtime config updates
+│       │   └── request-tester/   # Manual request firing
+│       └── services/             # API communication
 │
-├── docker-compose.yml          # Multi-container orchestration
-└── config-update.json          # Config example
+└── docker-compose.yml
 ```
 
-## Getting Started
+---
 
-### Prerequisites
+## ▶️ Run Locally
 
-- Java 17 or higher
-- Node.js 18+ and npm
-- Docker and Docker Compose (optional, for containerized deployment)
-- Redis (optional, for distributed rate limiting)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ApiRateLimiter
-   ```
-
-2. **Backend Setup**
-   ```bash
-   cd backend
-   ./mvnw clean install
-   ```
-
-3. **Frontend Setup**
-   ```bash
-   cd ../frontend
-   npm install
-   ```
-
-### Running the Application
-
-#### Option 1: Local Development
-
-1. **Start Redis** (optional but recommended)
-   ```bash
-   # Using Docker
-   docker run -d -p 6379:6379 redis:7-alpine
-   ```
-
-2. **Start the Backend**
-   ```bash
-   cd backend
-   ./mvnw spring-boot:run
-   ```
-   Backend will be available at `http://localhost:8080`
-
-3. **Start the Frontend** (in a new terminal)
-   ```bash
-   cd frontend
-   npm start
-   ```
-   Frontend will be available at `http://localhost:4200`
-
-#### Option 2: Docker Compose
-
+### Option 1 — Docker Compose (recommended)
 ```bash
 docker-compose up --build
+# Redis → :6379 | Backend → :8080 | Frontend → :4200
 ```
 
-This will start:
-- Redis on `localhost:6379`
-- Backend on `http://localhost:8080`
-- Frontend on `http://localhost:4200`
+### Option 2 — Manual
 
-## Configuration
+**Start Redis**
+```bash
+docker run -d -p 6379:6379 redis:7-alpine
+```
 
-### Rate Limiting Routes
+**Start backend**
+```bash
+cd backend
+./mvnw spring-boot:run
+```
 
-Configure rate limiting rules in `backend/src/main/resources/application.properties`:
+**Start frontend**
+```bash
+cd frontend
+npm install && npm start
+```
+
+---
+
+## ⚙️ Configuration
+
+Routes are configured in `application.properties`:
 
 ```properties
-# Define rate limit routes
 rate-limit.routes[0].path=/api/auth/login
 rate-limit.routes[0].limit=5
 rate-limit.routes[0].window-secs=900
 rate-limit.routes[0].strategy=fixed
-rate-limit.routes[0].key-prefix=auth
 
 rate-limit.routes[1].path=/api/search
 rate-limit.routes[1].limit=30
 rate-limit.routes[1].window-secs=60
 rate-limit.routes[1].strategy=sliding
-rate-limit.routes[1].key-prefix=search
 ```
 
-### Supported Strategies
+Strategies: `fixed` · `sliding` · `token`
 
-- **fixed**: Fixed window - resets counter at fixed intervals
-- **sliding**: Sliding window - smooth rate limiting over time
-- **token**: Token bucket - allows burst traffic up to limit
+---
 
-## API Endpoints
+## 🧪 Tests
 
-### Rate Limiting
-
-- `GET /api/rate-limit/status` - Get current rate limit status
-- `POST /api/rate-limit/reset` - Reset rate limit counters
-- `GET /api/rate-limit/routes` - List configured routes
-
-### Admin
-
-- `GET /api/admin/config` - Get current configuration
-- `POST /api/admin/config` - Update configuration
-- `GET /api/admin/metrics` - View rate limiting metrics
-
-### Health
-
-- `GET /actuator/health` - Health check endpoint
-
-## Development
-
-### Running Tests
-
-**Backend**
 ```bash
-cd backend
-./mvnw test
+# Backend
+cd backend && ./mvnw test
+
+# Frontend
+cd frontend && npm test
 ```
 
-**Frontend**
-```bash
-cd frontend
-npm test
-```
+---
 
-### Building for Production
+## 🛠 Troubleshooting
 
-**Backend**
-```bash
-cd backend
-./mvnw clean package
-```
-
-**Frontend**
-```bash
-cd frontend
-npm run build
-```
-
-## Features
-
-- ✅ Multiple rate limiting algorithms
-- ✅ Dynamic configuration updates
-- ✅ Redis-based distributed caching
-- ✅ Admin dashboard for monitoring
-- ✅ Request testing tool
-- ✅ Comprehensive error handling
-- ✅ Docker support
-- ✅ Unit test coverage
-
-## Architecture
-
-The application follows a layered architecture:
-
-1. **Controller Layer**: Handles HTTP requests
-2. **Service Layer**: Implements business logic
-3. **Strategy Layer**: Rate limiting algorithms
-4. **Store Layer**: Data persistence (Redis)
-5. **Filter Layer**: Request interception and validation
-
-## Troubleshooting
-
-### Backend won't start
-- Ensure Java 17+ is installed: `java -version`
-- Check if port 8080 is available
-- Review logs in console output
-
-### Frontend won't load
-- Clear npm cache: `npm cache clean --force`
-- Delete `node_modules` and reinstall: `npm install`
-- Ensure port 4200 is available
-
-### Redis connection issues
-- Verify Redis is running on localhost:6379
-- Check redis configuration in `application.properties`
-- Application can run without Redis (uses in-memory fallback)
-
-
-## Future Enhancements
-
-- [ ] Implement rate limit quota analytics
-- [ ] Support for webhook notifications
-- [ ] Integration with API gateway
-- [ ] Cloud deployment templates
+| Issue | Fix |
+|-------|-----|
+| Redis connection refused | App falls back to in-memory automatically — check logs to confirm |
+| Render backend slow on first request | Free tier cold start — takes ~30s to wake up |
+| 429 on every request | Check route config limits in `application.properties` |
+| Frontend can't reach backend | Verify API base URL in `frontend/src/app/services/` |
